@@ -1,30 +1,16 @@
 import {app, BrowserWindow} from 'electron'
 import {CustomScheme} from "./CustomScheme";
 import {CommonWindowEvent} from "./CommonWindowEvent";
+import {config} from "./data";
 
 process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "true";
 let mainWindow: BrowserWindow;
 
 app.whenReady().then(() => {
-    const config = {
-        frame: false,
-        show: false,
-        webPreferences: {
-            nodeIntegration: true,
-            webSecurity: false,
-            allowRunningInsecureContent: true,
-            contextIsolation: false,
-            webviewTag: true,
-            spellcheck: false,
-            disableHtmlFullscreenWindowResize: true,
-        },
-    };
+
     mainWindow = new BrowserWindow(config);
-    mainWindow.webContents.setWindowOpenHandler((params) => {
-        return {action: 'allow'}
-    })
+
     CommonWindowEvent.listen();
-    CommonWindowEvent.regWinEvent(mainWindow);
     // mainWindow.webContents.openDevTools({mode: "detach"});
     if (process.argv[2]) {
         mainWindow.loadURL(process.argv[2]);
@@ -34,6 +20,6 @@ app.whenReady().then(() => {
     }
 });
 
-app.on('browser-window-created', () => {
-
+app.on('browser-window-created', (e, win) => {
+    CommonWindowEvent.regWinEvent(win)
 })

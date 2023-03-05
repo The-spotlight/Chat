@@ -1,4 +1,5 @@
 import {BrowserWindow, ipcMain} from "electron";
+import {config as configWin} from "./data";
 
 export class CommonWindowEvent {
     private static getWin(event: any) {
@@ -39,5 +40,25 @@ export class CommonWindowEvent {
         win.on('unmaximize', () => {
             win.webContents.send('windowUnMaximized')
         })
+
+
+        win.webContents.setWindowOpenHandler((params) => {
+            const features = JSON.parse(params.features)
+            let config: any = configWin
+            config.show = true
+            for (const p in features) {
+                if (p === 'webPreferences') {
+                    for (const p2 in features.webPreferences) {
+                        config.webPreferences[p2] = features.webPreferences[p2]
+                    }
+                } else {
+                    config[p] = features[p]
+                }
+            }
+
+            if (config['modal'] === true) config.parent = win
+            return {action: 'allow', overrideBrowserWindowOptions: config}
+        })
+
     }
 }
