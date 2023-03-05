@@ -1,15 +1,9 @@
-<template>
-  <div>收藏</div>
-  <div class="flex-1">
-    <BarTop />
-  </div>
-</template>
-
 <script setup lang="ts">
-
-import BarTop from "../../Components/BarTop.vue";
+import ChatBoard from "./Chat/ChatBoard.vue";
+import MessageBoard from "./Chat/MessageBoard.vue";
 </script>
-
-<style scoped>
-
-</style>
+<template>
+  <ChatBoard></ChatBoard>
+  <MessageBoard></MessageBoard>
+</template>
+<style scoped lang="scss"></style>
