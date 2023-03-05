@@ -1,5 +1,7 @@
 <template>
-  <router-view />
+  <div>
+    WindowSetting
+  </div>
 </template>
 
 <script setup lang="ts">
