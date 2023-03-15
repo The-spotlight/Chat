@@ -11,7 +11,7 @@ app.whenReady().then(() => {
     mainWindow = new BrowserWindow(config);
 
     CommonWindowEvent.listen();
-    // mainWindow.webContents.openDevTools({mode: "detach"});
+    mainWindow.webContents.openDevTools({mode: "detach"});
     if (process.argv[2]) {
         mainWindow.loadURL(process.argv[2]);
     } else {

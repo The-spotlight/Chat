@@ -4,6 +4,11 @@ import App from '../App.vue'
 import {router} from "./router";
 import {createPinia} from "pinia";
 import './assets/style.css'
-import './assets/icon/iconfont.css'
+import './assets/icons/iconfont.css'
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+import {respondLocal} from "./store/plugins/respondLocal";
 
-createApp(App).use(createPinia()).use(router).mount('#app')
+const pinia = createPinia()
+pinia.use(piniaPluginPersistedstate).use(respondLocal)
+
+createApp(App).use(pinia).use(router).mount('#app')
