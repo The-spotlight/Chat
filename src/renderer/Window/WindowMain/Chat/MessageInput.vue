@@ -2,6 +2,7 @@
 import { ref, watch, computed, nextTick, onMounted } from "vue";
 import { useMessageStore } from "../../../store/useMessageStore";
 import { useChatStore } from "../../../store/useChatStore";
+import ReferencePreview from "../../../Components/ReferencePreview.vue";
 
 const messageStore = useMessageStore();
 const chatStore = useChatStore();
@@ -24,6 +25,7 @@ const sendMessage = () => {
   if (!canSend.value) return;
 
   const content = inputContent.value.trim();
+  
   messageStore.sendMessage(content);
   
   // 更新左侧聊天列表的最后一条消息
@@ -76,6 +78,14 @@ onMounted(() => {
 
 <template>
   <div class="input-area">
+    <!-- 引用预览条 -->
+    <ReferencePreview
+      v-if="messageStore.hasReference"
+      :from-name="messageStore.referenceInfo!.fromName"
+      :content="messageStore.referenceInfo!.content"
+      @close="messageStore.clearReference"
+    />
+    
     <div class="input-wrapper" :class="{ disabled: isDisabled }">
       <textarea
         ref="inputRef"
