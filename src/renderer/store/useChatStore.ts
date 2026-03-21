@@ -28,7 +28,19 @@ export const useChatStore = defineStore('chat', () => {
         messageStore.initData(item)
     }
 
-    return {data, selectItem}
+    let updateChatLastMessage = (chatId: string, lastMsg: string, sendTime: string = '刚刚') => {
+        let chat = data.value.find(item => item.id === chatId);
+        if (chat) {
+            chat.lastMsg = lastMsg;
+            chat.sendTime = sendTime;
+        }
+    }
+
+    let getSelectedChat = () => {
+        return data.value.find(item => item.isSelected) || null;
+    }
+
+    return {data, selectItem, updateChatLastMessage, getSelectedChat}
 })
 
 
