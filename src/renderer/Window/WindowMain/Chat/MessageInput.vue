@@ -2,6 +2,7 @@
 import { ref, watch, computed, nextTick, onMounted } from "vue";
 import { useMessageStore } from "../../../store/useMessageStore";
 import { useChatStore } from "../../../store/useChatStore";
+import QuotePreview from "./QuotePreview.vue";
 
 const messageStore = useMessageStore();
 const chatStore = useChatStore();
@@ -76,6 +77,7 @@ onMounted(() => {
 
 <template>
   <div class="input-area">
+    <QuotePreview />
     <div class="input-wrapper" :class="{ disabled: isDisabled }">
       <textarea
         ref="inputRef"
