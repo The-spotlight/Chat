@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import MessageInput from '../MessageInput.vue'
 import { useChatStore } from '../../../../store/useChatStore'
 import { useMessageStore } from '../../../../store/useMessageStore'
+import { ModelMessage } from '../../../../../model/ModelMessage'
 
 describe('MessageInput', () => {
   beforeEach(() => {
@@ -157,5 +158,101 @@ describe('MessageInput', () => {
     await sendBtn.trigger('click')
     
     expect(sendMessageSpy).toHaveBeenCalledWith('Hello World')
+  })
+
+  // Reference Feature Tests
+  describe('Reference Feature', () => {
+    it('should not render reference preview when no reference exists', () => {
+      const wrapper = mount(MessageInput)
+      expect(wrapper.find('.reference-preview').exists()).toBe(false)
+    })
+
+    it('should render sender name and content summary when reference exists', async () => {
+      const wrapper = mount(MessageInput)
+      const messageStore = useMessageStore()
+      const chatStore = useChatStore()
+      chatStore.selectItem(chatStore.data[0])
+
+      const message = new ModelMessage()
+      message.id = 'ref-123'
+      message.fromName = '张三'
+      message.messageContent = '这是被引用的消息'
+
+      messageStore.setReference(message)
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('.reference-preview').exists()).toBe(true)
+      expect(wrapper.find('.reference-sender').text()).toBe('张三')
+      expect(wrapper.find('.reference-content').text()).toBe('这是被引用的消息')
+    })
+
+    it('should truncate long content correctly', async () => {
+      const wrapper = mount(MessageInput)
+      const messageStore = useMessageStore()
+      const chatStore = useChatStore()
+      chatStore.selectItem(chatStore.data[0])
+
+      const message = new ModelMessage()
+      message.id = 'ref-456'
+      message.fromName = '李四'
+      message.messageContent = '这是一段很长的消息内容，超过了三十个字符的限制，需要进行截断处理'
+
+      messageStore.setReference(message)
+      await wrapper.vm.$nextTick()
+
+      const content = wrapper.find('.reference-content').text()
+      expect(content.length).toBeLessThanOrEqual(33) // 30 + 3 (ellipsis)
+      expect(content.endsWith('...')).toBe(true)
+    })
+
+    it('should clear reference state when close button clicked', async () => {
+      const wrapper = mount(MessageInput)
+      const messageStore = useMessageStore()
+      const chatStore = useChatStore()
+      chatStore.selectItem(chatStore.data[0])
+
+      const message = new ModelMessage()
+      message.id = 'ref-789'
+      message.fromName = '王五'
+      message.messageContent = '测试消息'
+
+      messageStore.setReference(message)
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('.reference-preview').exists()).toBe(true)
+
+      const closeBtn = wrapper.find('.close-btn')
+      await closeBtn.trigger('click')
+
+      expect(wrapper.find('.reference-preview').exists()).toBe(false)
+      expect(messageStore.hasReference).toBe(false)
+    })
+
+    it('should auto clear reference state after sending message', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      const messageStore = useMessageStore()
+      
+      chatStore.selectItem(chatStore.data[0])
+
+      const message = new ModelMessage()
+      message.id = 'ref-abc'
+      message.fromName = '赵六'
+      message.messageContent = '被引用的消息'
+
+      messageStore.setReference(message)
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('.reference-preview').exists()).toBe(true)
+
+      const textarea = wrapper.find('textarea')
+      await textarea.setValue('回复消息')
+
+      const sendBtn = wrapper.find('.send-btn')
+      await sendBtn.trigger('click')
+
+      expect(wrapper.find('.reference-preview').exists()).toBe(false)
+      expect(messageStore.hasReference).toBe(false)
+    })
   })
 })

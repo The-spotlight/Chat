@@ -1,33 +1,88 @@
 <script setup lang="ts">
-import {ModelMessage} from "../../../../model/ModelMessage";
+import { ref } from 'vue';
+import { ModelMessage } from "../../../../model/ModelMessage";
+import { useMessageStore } from "../../../store/useMessageStore";
+import ContextMenu from "../../../Components/ContextMenu.vue";
+import QuoteCard from "../../../Components/QuoteCard.vue";
 
-defineProps<{ data: ModelMessage }>()
+const props = defineProps<{ 
+    data: ModelMessage;
+    index: number;
+}>()
+
+const emit = defineEmits<{
+    (e: 'jump-to-message', messageId: string): void;
+}>()
+
+const messageStore = useMessageStore();
+const contextMenuRef = ref<InstanceType<typeof ContextMenu> | null>(null);
+
+const menuItems = [
+    {
+        label: '引用',
+        action: () => {
+            messageStore.setReference(props.data);
+        }
+    }
+];
+
+const handleContextMenu = (e: MouseEvent) => {
+    e.preventDefault();
+    contextMenuRef.value?.show(e.clientX, e.clientY);
+};
+
+const handleReferenceClick = () => {
+    if (props.data.reference?.messageId) {
+        emit('jump-to-message', props.data.reference.messageId);
+    }
+};
 </script>
 
 <template>
-  <template v-if="data?.isInMsg">
-    <div class="messageItem left">
-      <div class="avatar">
-        <img :src="data?.avatar" alt=""/>
+  <div :id="'message-' + data.id" class="message-wrapper">
+    <ContextMenu ref="contextMenuRef" :items="menuItems" />
+    
+    <template v-if="data?.isInMsg">
+      <div class="messageItem left" @contextmenu="handleContextMenu">
+        <div class="avatar">
+          <img :src="data?.avatar" alt=""/>
+        </div>
+        <div class="msgBox">
+          <div class="fromName">{{ data?.fromName }}</div>
+          <QuoteCard 
+            v-if="data?.reference" 
+            :reference="data.reference" 
+            :clickable="true"
+            @click="handleReferenceClick"
+          />
+          <div class="msgContent">{{ data?.messageContent }}</div>
+        </div>
       </div>
-      <div class="msgBox">
-        <div class="fromName">{{ data?.fromName }}</div>
-        <div class="msgContent">{{ data?.messageContent }}</div>
+    </template>
+    <template v-else>
+      <div class="messageItem right" @contextmenu="handleContextMenu">
+        <div class="msgBox">
+          <QuoteCard 
+            v-if="data?.reference" 
+            :reference="data.reference" 
+            :clickable="true"
+            @click="handleReferenceClick"
+          />
+          <div class="msgContent">{{ data?.messageContent }}</div>
+        </div>
+        <div class="avatar">
+          <img :src="data?.avatar" alt=""/>
+        </div>
       </div>
-    </div>
-  </template>
-  <template v-else>
-    <div class="messageItem right">
-      <div class="msgBox">
-        <div class="msgContent">{{ data?.messageContent }}</div>
-      </div>
-      <div class="avatar">
-        <img :src="data?.avatar" alt=""/>
-      </div>
-    </div>
-  </template>
+    </template>
+  </div>
 </template>
+
 <style lang="scss" scoped>
+.message-wrapper {
+  position: relative;
+}
+
 .messageItem {
   display: flex;
   padding-top: 8px;
