@@ -33,6 +33,10 @@ export class CommonWindowEvent {
     }
 
     public static regWinEvent(win: BrowserWindow) {
+        win.on('ready-to-show', () => {
+            win.show()
+        })
+
         win.on('maximize', () => {
             win.webContents.send('windowMaximized')
         })

@@ -14,8 +14,13 @@ export const devPlugin = () => {
             server?.httpServer?.once('listening', () => {
                 const {spawn} = require('child_process')
                 const addressInfo = server?.httpServer?.address();
-                // @ts-ignore
-                const httpAddress = `http://${addressInfo.address}:${addressInfo.port}`
+                let httpAddress: string;
+                if (!addressInfo || typeof addressInfo === 'string') {
+                    httpAddress = 'http://localhost:5173';
+                } else {
+                    // ::1 / :: / 0.0.0.0 拼成 http://::1:port 对 loadURL 无效；用 localhost + 端口即可连到本机 dev server
+                    httpAddress = `http://localhost:${addressInfo.port}`;
+                }
                 const electronProcess = spawn(require('electron').toString(), ['./dist/mainEntry.js', httpAddress], {
                     cwd: process.cwd(),
                     stdio: 'inherit',
