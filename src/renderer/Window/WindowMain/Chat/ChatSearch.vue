@@ -1,11 +1,89 @@
 <template>
   <div class="flex h54px box-border pt23px pl12px pr12px position-relative chatSearch">
     <div class="searchIcon"><i class="icon icon-sousuo"></i></div>
-    <div class="inputBox" contenteditable="true" placeholder="搜索"></div>
+    <div class="inputBox" ref="inputBox" contenteditable="true" placeholder="搜索" @input="handleInput" @keydown="handleKeydown"></div>
     <div class="searchBtn">+</div>
   </div>
 </template>
-<script lang="ts" setup></script>
+<script lang="ts" setup>
+import { useChatStore } from "../../../store/useChatStore";
+import { ref, watch } from "vue";
+
+const store = useChatStore();
+const inputBox = ref<HTMLDivElement | null>(null);
+let debounceTimer: number | null = null;
+
+// XSS防护：转义特殊字符
+const escapeHtml = (str: string): string => {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
+// 清理输入内容
+const sanitizeInput = (text: string): string => {
+  // 移除HTML标签
+  const withoutTags = text.replace(/<[^>]*>/g, "");
+  // 转义特殊字符
+  const escaped = escapeHtml(withoutTags);
+  // 移除多余空白字符（包括换行、制表符）
+  const cleaned = escaped.replace(/\s+/g, " ").trim();
+  return cleaned;
+};
+
+// 防抖处理
+const debouncedSearch = (keyword: string, delay: number = 150) => {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+  }
+  debounceTimer = window.setTimeout(() => {
+    store.setSearchKeyword(keyword);
+  }, delay);
+};
+
+const handleInput = () => {
+  if (inputBox.value) {
+    const rawText = inputBox.value.innerText;
+    const keyword = sanitizeInput(rawText);
+    debouncedSearch(keyword);
+  }
+};
+
+// 键盘事件处理
+const handleKeydown = (event: KeyboardEvent) => {
+  // ESC键清除搜索
+  if (event.key === "Escape") {
+    clearSearch();
+  }
+  // 防止回车换行
+  if (event.key === "Enter") {
+    event.preventDefault();
+  }
+};
+
+// 清除搜索
+const clearSearch = () => {
+  if (inputBox.value) {
+    inputBox.value.innerText = "";
+  }
+  store.setSearchKeyword("");
+  // 失去焦点
+  inputBox.value?.blur();
+};
+
+// 监听搜索关键词变化，同步清空输入框
+watch(
+  () => store.searchKeyword,
+  (newVal) => {
+    if (!newVal && inputBox.value && inputBox.value.innerText.trim()) {
+      inputBox.value.innerText = "";
+    }
+  }
+);
+</script>
 <style lang="scss" scoped>
 .chatSearch {
   background: rgb(247, 247, 247);
