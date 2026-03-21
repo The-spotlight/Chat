@@ -1,6 +1,6 @@
 import {defineStore} from "pinia";
 import {ModelChat} from "../../model/ModelChat";
-import {Ref, ref} from "vue";
+import {Ref, ref, computed} from "vue";
 import {useMessageStore} from "./useMessageStore";
 
 
@@ -20,6 +20,11 @@ let prepareData = () => {
 
 export const useChatStore = defineStore('chat', () => {
     let data: Ref<ModelChat[]> = ref(prepareData())
+
+    let selectedChat = computed(() => {
+        return data.value.find(item => item.isSelected);
+    });
+
     let selectItem = (item: ModelChat) => {
         if (item.isSelected) return;
         data.value.forEach(i => i.isSelected = false)
@@ -28,7 +33,15 @@ export const useChatStore = defineStore('chat', () => {
         messageStore.initData(item)
     }
 
-    return {data, selectItem}
+    let updateLastMessage = (chatId: string, message: string) => {
+        const chat = data.value.find(item => item.id === chatId);
+        if (chat) {
+            chat.lastMsg = message;
+            chat.sendTime = '刚刚';
+        }
+    }
+
+    return {data, selectItem, selectedChat, updateLastMessage}
 })
 
 
