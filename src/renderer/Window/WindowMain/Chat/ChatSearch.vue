@@ -1,11 +1,30 @@
 <template>
   <div class="flex h54px box-border pt23px pl12px pr12px position-relative chatSearch">
     <div class="searchIcon"><i class="icon icon-sousuo"></i></div>
-    <div class="inputBox" contenteditable="true" placeholder="搜索"></div>
+    <div 
+      class="inputBox" 
+      contenteditable="true" 
+      placeholder="搜索"
+      @input="onInput"
+      ref="inputRef"
+    ></div>
     <div class="searchBtn">+</div>
   </div>
 </template>
-<script lang="ts" setup></script>
+<script lang="ts" setup>
+import { ref } from 'vue';
+
+const emit = defineEmits<{
+  (e: 'search', keyword: string): void
+}>();
+
+const inputRef = ref<HTMLDivElement>();
+
+const onInput = () => {
+  const keyword = inputRef.value?.textContent?.trim() || '';
+  emit('search', keyword);
+};
+</script>
 <style lang="scss" scoped>
 .chatSearch {
   background: rgb(247, 247, 247);
