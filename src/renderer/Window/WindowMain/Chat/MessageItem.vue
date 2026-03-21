@@ -1,33 +1,93 @@
 <script setup lang="ts">
-import {ModelMessage} from "../../../../model/ModelMessage";
+import { ref, inject } from 'vue';
+import { ModelMessage } from "../../../../model/ModelMessage";
+import { useMessageStore } from "../../../store/useMessageStore";
+import ContextMenu from "../../../Components/ContextMenu.vue";
+import QuoteCard from "./QuoteCard.vue";
 
-defineProps<{ data: ModelMessage }>()
+const props = defineProps<{ data: ModelMessage }>();
+
+const messageStore = useMessageStore();
+const contextMenuRef = ref<InstanceType<typeof ContextMenu> | null>(null);
+
+const scrollToMessage = inject<(messageId: string) => void>('scrollToMessage');
+
+const handleContextMenu = (e: MouseEvent) => {
+  e.preventDefault();
+  contextMenuRef.value?.open(e.clientX, e.clientY);
+};
+
+const handleQuote = () => {
+  messageStore.setQuote(props.data);
+};
+
+const handleQuoteCardClick = (messageId: string) => {
+  scrollToMessage?.(messageId);
+};
 </script>
 
 <template>
-  <template v-if="data?.isInMsg">
-    <div class="messageItem left">
-      <div class="avatar">
-        <img :src="data?.avatar" alt=""/>
+  <div
+    class="message-item-wrapper"
+    :class="{ left: data?.isInMsg, right: !data?.isInMsg }"
+    @contextmenu="handleContextMenu"
+  >
+    <template v-if="data?.isInMsg">
+      <div class="messageItem left">
+        <div class="avatar">
+          <img :src="data?.avatar" alt=""/>
+        </div>
+        <div class="msgBox">
+          <div class="fromName">{{ data?.fromName }}</div>
+          <QuoteCard 
+            v-if="data?.quote" 
+            :quote="data.quote" 
+            @click="handleQuoteCardClick" 
+          />
+          <div class="msgContent">{{ data?.messageContent }}</div>
+        </div>
       </div>
-      <div class="msgBox">
-        <div class="fromName">{{ data?.fromName }}</div>
-        <div class="msgContent">{{ data?.messageContent }}</div>
+    </template>
+    <template v-else>
+      <div class="messageItem right">
+        <div class="msgBox">
+          <QuoteCard 
+            v-if="data?.quote" 
+            :quote="data.quote" 
+            @click="handleQuoteCardClick" 
+          />
+          <div class="msgContent">{{ data?.messageContent }}</div>
+        </div>
+        <div class="avatar">
+          <img :src="data?.avatar" alt=""/>
+        </div>
       </div>
-    </div>
-  </template>
-  <template v-else>
-    <div class="messageItem right">
-      <div class="msgBox">
-        <div class="msgContent">{{ data?.messageContent }}</div>
-      </div>
-      <div class="avatar">
-        <img :src="data?.avatar" alt=""/>
-      </div>
-    </div>
-  </template>
+    </template>
+    
+    <ContextMenu ref="contextMenuRef" @quote="handleQuote" />
+  </div>
 </template>
 <style lang="scss" scoped>
+.message-item-wrapper {
+  position: relative;
+  transition: background-color 0.3s ease;
+  
+  &.highlighted {
+    background-color: rgba(149, 236, 105, 0.2);
+    border-radius: 8px;
+    animation: pulse 1s ease-in-out;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    background-color: rgba(149, 236, 105, 0.2);
+  }
+  50% {
+    background-color: rgba(149, 236, 105, 0.4);
+  }
+}
+
 .messageItem {
   display: flex;
   padding-top: 8px;
