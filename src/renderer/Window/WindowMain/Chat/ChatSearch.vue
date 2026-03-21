@@ -1,11 +1,29 @@
 <template>
   <div class="flex h54px box-border pt23px pl12px pr12px position-relative chatSearch">
     <div class="searchIcon"><i class="icon icon-sousuo"></i></div>
-    <div class="inputBox" contenteditable="true" placeholder="搜索"></div>
+    <input 
+      class="inputBox" 
+      type="text"
+      placeholder="搜索"
+      v-model="keyword"
+      @input="handleInput"
+    />
     <div class="searchBtn">+</div>
   </div>
 </template>
-<script lang="ts" setup></script>
+<script lang="ts" setup>
+import { ref } from 'vue'
+
+const emit = defineEmits<{
+  (e: 'search', keyword: string): void
+}>()
+
+const keyword = ref('')
+
+const handleInput = () => {
+  emit('search', keyword.value.trim())
+}
+</script>
 <style lang="scss" scoped>
 .chatSearch {
   background: rgb(247, 247, 247);
@@ -42,14 +60,8 @@
   &:focus {
     background: #fff;
   }
-  /* 输入框为空时显示 placeholder */
-  &:empty:before {
-    content: attr(placeholder);
+  &::placeholder {
     color: #888;
-  }
-  /* 输入框获取焦点时移除 placeholder */
-  &:focus:before {
-    content: none;
   }
 }
 .searchBtn {
