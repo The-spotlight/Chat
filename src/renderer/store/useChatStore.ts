@@ -86,6 +86,20 @@ export const useChatStore = defineStore('chat', () => {
         messageStore.initData(item)
     }
 
+    // 获取当前选中的会话
+    const getSelectedChat = computed(() => {
+        return data.value.find(item => item.isSelected) || null;
+    });
+
+    // 更新选中会话的最后一条消息和时间
+    const updateLastMessage = (chatId: string, content: string) => {
+        const chat = data.value.find(item => item.id === chatId);
+        if (chat) {
+            chat.lastMsg = content;
+            chat.sendTime = '刚刚';
+        }
+    };
+
     // 清除搜索状态
     const clearSearch = () => {
         searchKeyword.value = '';
@@ -98,7 +112,9 @@ export const useChatStore = defineStore('chat', () => {
         setSearchKeyword,
         filteredData,
         searchStats,
-        clearSearch
+        clearSearch,
+        getSelectedChat,
+        updateLastMessage
     }
 })
 
