@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import MessageInput from '../MessageInput.vue'
 import { useChatStore } from '../../../../store/useChatStore'
 import { useMessageStore } from '../../../../store/useMessageStore'
+import { ModelMessage } from '../../../../../model/ModelMessage'
 
 describe('MessageInput', () => {
   beforeEach(() => {
@@ -19,7 +20,6 @@ describe('MessageInput', () => {
 
   it('should be disabled when no chat is selected', async () => {
     const chatStore = useChatStore()
-    // Deselect all chats first
     chatStore.data.forEach(c => c.isSelected = false)
     
     const wrapper = mount(MessageInput)
@@ -35,7 +35,6 @@ describe('MessageInput', () => {
     const wrapper = mount(MessageInput)
     const chatStore = useChatStore()
     
-    // Select a chat
     chatStore.selectItem(chatStore.data[0])
     
     expect(wrapper.find('.input-wrapper').classes()).not.toContain('disabled')
@@ -157,5 +156,120 @@ describe('MessageInput', () => {
     await sendBtn.trigger('click')
     
     expect(sendMessageSpy).toHaveBeenCalledWith('Hello World')
+  })
+
+  describe('reference preview', () => {
+    it('should not render reference preview when no message is referenced', () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      chatStore.selectItem(chatStore.data[0])
+
+      expect(wrapper.find('.reference-preview').exists()).toBe(false)
+    })
+
+    it('should render reference preview when a message is referenced', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      const messageStore = useMessageStore()
+      
+      chatStore.selectItem(chatStore.data[0])
+
+      const referencedMsg = new ModelMessage()
+      referencedMsg.fromName = 'Sender'
+      referencedMsg.messageContent = 'Referenced message'
+      
+      messageStore.setReferencedMessage(referencedMsg)
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('.reference-preview').exists()).toBe(true)
+    })
+
+    it('should display referenced sender name in preview', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      const messageStore = useMessageStore()
+      
+      chatStore.selectItem(chatStore.data[0])
+
+      const referencedMsg = new ModelMessage()
+      referencedMsg.fromName = 'John Doe'
+      referencedMsg.messageContent = 'Test message'
+      
+      messageStore.setReferencedMessage(referencedMsg)
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('.reference-name').text()).toBe('John Doe')
+    })
+
+    it('should display truncated content in preview', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      const messageStore = useMessageStore()
+      
+      chatStore.selectItem(chatStore.data[0])
+
+      const longContent = 'This is a very long message that exceeds thirty characters limit'
+      const referencedMsg = new ModelMessage()
+      referencedMsg.fromName = 'Sender'
+      referencedMsg.messageContent = longContent
+      
+      messageStore.setReferencedMessage(referencedMsg)
+      await wrapper.vm.$nextTick()
+
+      const previewText = wrapper.find('.reference-text').text()
+      expect(previewText.length).toBeLessThanOrEqual(33)
+      expect(previewText.endsWith('...')).toBe(true)
+    })
+
+    it('should clear reference when close button is clicked', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      const messageStore = useMessageStore()
+      
+      chatStore.selectItem(chatStore.data[0])
+
+      const referencedMsg = new ModelMessage()
+      referencedMsg.fromName = 'Sender'
+      referencedMsg.messageContent = 'Test message'
+      
+      messageStore.setReferencedMessage(referencedMsg)
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('.reference-preview').exists()).toBe(true)
+
+      await wrapper.find('.close-btn').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(messageStore.referencedMessage).toBeNull()
+    })
+
+    it('should send message with reference and clear reference state', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      const messageStore = useMessageStore()
+      
+      chatStore.selectItem(chatStore.data[0])
+
+      const referencedMsg = new ModelMessage()
+      referencedMsg.id = 'ref-id'
+      referencedMsg.fromName = 'Sender'
+      referencedMsg.messageContent = 'Original message'
+      
+      messageStore.setReferencedMessage(referencedMsg)
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      await textarea.setValue('Reply message')
+      
+      const sendBtn = wrapper.find('.send-btn')
+      await sendBtn.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(messageStore.referencedMessage).toBeNull()
+      
+      const lastMessage = messageStore.data[messageStore.data.length - 1]
+      expect(lastMessage.reference).toBeDefined()
+      expect(lastMessage.reference?.referencedMessageId).toBe('ref-id')
+    })
   })
 })

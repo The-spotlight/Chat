@@ -2,6 +2,7 @@
 import { ref, watch, computed, nextTick, onMounted } from "vue";
 import { useMessageStore } from "../../../store/useMessageStore";
 import { useChatStore } from "../../../store/useChatStore";
+import ReferencePreview from "./ReferencePreview.vue";
 
 const messageStore = useMessageStore();
 const chatStore = useChatStore();
@@ -9,43 +10,39 @@ const chatStore = useChatStore();
 const inputContent = ref("");
 const inputRef = ref<HTMLTextAreaElement | null>(null);
 
-// 检查是否可以发送
 const canSend = computed(() => {
   return inputContent.value.trim().length > 0 && chatStore.getSelectedChat !== null;
 });
 
-// 检查是否禁用
 const isDisabled = computed(() => {
   return chatStore.getSelectedChat === null;
 });
 
-// 发送消息
+const hasReference = computed(() => {
+  return messageStore.referencedMessage !== null;
+});
+
 const sendMessage = () => {
   if (!canSend.value) return;
 
   const content = inputContent.value.trim();
   messageStore.sendMessage(content);
   
-  // 更新左侧聊天列表的最后一条消息
   if (messageStore.currentChat) {
     chatStore.updateLastMessage(messageStore.currentChat.id!, content);
   }
 
-  // 清空输入框并保持焦点
   inputContent.value = "";
   focusInput();
 };
 
-// 处理键盘事件
 const handleKeydown = (e: KeyboardEvent) => {
-  // Enter 发送，Shift + Enter 换行
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     sendMessage();
   }
 };
 
-// 聚焦输入框
 const focusInput = () => {
   nextTick(() => {
     if (inputRef.value) {
@@ -54,7 +51,6 @@ const focusInput = () => {
   });
 };
 
-// 自动调整输入框高度
 const autoResize = () => {
   nextTick(() => {
     if (inputRef.value) {
@@ -64,11 +60,14 @@ const autoResize = () => {
   });
 };
 
+const handleCloseReference = () => {
+  messageStore.clearReferencedMessage();
+};
+
 watch(inputContent, () => {
   autoResize();
 });
 
-// 组件挂载时聚焦
 onMounted(() => {
   focusInput();
 });
@@ -76,6 +75,11 @@ onMounted(() => {
 
 <template>
   <div class="input-area">
+    <ReferencePreview
+      v-if="hasReference"
+      :message="messageStore.referencedMessage!"
+      @close="handleCloseReference"
+    />
     <div class="input-wrapper" :class="{ disabled: isDisabled }">
       <textarea
         ref="inputRef"
