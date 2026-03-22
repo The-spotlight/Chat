@@ -67,6 +67,15 @@ const sortChats = (chats: ModelChat[]): ModelChat[] => {
 
 export const useChatStore = defineStore('chat', () => {
     let data: Ref<ModelChat[]> = ref(prepareData())
+    
+    // 初始化时恢复选中状态
+    const initSelectedState = () => {
+        const selectedChat = data.value.find(item => item.isSelected);
+        if (selectedChat) {
+            const messageStore = useMessageStore();
+            messageStore.initData(selectedChat);
+        }
+    }
     const searchKeyword = ref('')
 
     const setSearchKeyword = (keyword: string) => {
@@ -188,6 +197,7 @@ export const useChatStore = defineStore('chat', () => {
         clearUnread,
         markAllAsRead,
         totalUnreadCount,
-        hasUnread
+        hasUnread,
+        initSelectedState
     }
 })

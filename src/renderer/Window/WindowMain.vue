@@ -9,11 +9,15 @@
 import BarLeft from "../Components/BarLeft.vue";
 import {ipcRenderer} from 'electron'
 import {onMounted} from "vue";
+import {useChatStore} from "../store/useChatStore";
+
+const chatStore = useChatStore();
 
 onMounted(() => {
   ipcRenderer.invoke('showWin')
+  // 初始化选中状态，恢复消息列表
+  chatStore.initSelectedState();
 })
-
 </script>
 
 <style scoped>

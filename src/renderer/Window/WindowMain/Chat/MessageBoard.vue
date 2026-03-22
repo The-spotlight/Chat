@@ -54,16 +54,21 @@ const showUnreadBanner = computed(() => {
   return messageStore.hasPendingUnread && messageStore.pendingUnreadCount > 10;
 });
 
+// 监听消息数据变化，自动滚动到底部
 watch(
-  () => messageStore.data.length,
-  () => {
+  () => messageStore.data,
+  (newData, oldData) => {
     nextTick(() => {
       if (messageListRef.value) {
-        messageListRef.value.scrollTop = messageListRef.value.scrollHeight;
+        // 只有在新消息添加时才滚动到底部
+        const hasNewMessage = !oldData || newData.length > oldData.length;
+        if (hasNewMessage) {
+          messageListRef.value.scrollTop = messageListRef.value.scrollHeight;
+        }
       }
     });
   },
-  { immediate: true }
+  { immediate: true, deep: true }
 );
 
 watch(
