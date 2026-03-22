@@ -23,24 +23,39 @@ const hasReference = computed(() => {
 });
 
 const sendMessage = () => {
-  if (!canSend.value) return;
+  if (!canSend.value) {
+    console.warn('Cannot send: no chat selected or content is empty');
+    return;
+  }
 
-  const content = inputContent.value.trim();
-  messageStore.sendMessage(content);
+  const content = inputContent.value;
+  const success = messageStore.sendMessage(content);
   
-  if (messageStore.currentChat) {
-    chatStore.updateLastMessage(messageStore.currentChat.id!, content);
+  if (success && messageStore.currentChat) {
+    // 更新左侧聊天列表的最后一条消息
+    chatStore.updateLastMessage(messageStore.currentChat.id!, content.trim());
   }
 
   inputContent.value = "";
+  // 重置输入框高度
+  if (inputRef.value) {
+    inputRef.value.style.height = "auto";
+  }
   focusInput();
 };
 
 const handleKeydown = (e: KeyboardEvent) => {
+  // 处理 Enter 键发送消息
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
+    // 阻止事件冒泡，防止触发其他组件的键盘事件
+    e.stopPropagation();
     sendMessage();
+    return;
   }
+  
+  // Shift + Enter 允许默认行为（换行），不需要额外处理
+  // 其他按键也允许默认行为
 };
 
 const focusInput = () => {

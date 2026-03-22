@@ -155,7 +155,8 @@ describe('MessageInput', () => {
     const sendBtn = wrapper.find('.send-btn')
     await sendBtn.trigger('click')
     
-    expect(sendMessageSpy).toHaveBeenCalledWith('Hello World')
+    // sendMessage 内部会进行 trim，所以传入的是原始内容
+    expect(sendMessageSpy).toHaveBeenCalledWith('   Hello World   ')
   })
 
   describe('reference preview', () => {

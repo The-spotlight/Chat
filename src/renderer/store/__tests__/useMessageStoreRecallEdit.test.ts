@@ -93,14 +93,17 @@ describe('useMessageStore - Recall and Edit functionality', () => {
     it('should recall a message within time limit', () => {
       const store = useMessageStore()
       const chat = createTestChat()
-      store.initData(chat)
+      store.initData(chat, true) // 使用 immediate: true 进行同步初始化
       
-      const messageId = store.data[1].id
+      // 确保消息创建时间是当前时间（在限制内）
+      const message = store.data[1]
+      message.createTime = Date.now()
+      message.isInMsg = false // 确保是发出的消息
       
-      const result = store.recallMessage(messageId)
+      const result = store.recallMessage(message.id)
       
       expect(result).toBe(true)
-      const recalledMessage = store.data.find(m => m.id === messageId)
+      const recalledMessage = store.data.find(m => m.id === message.id)
       expect(recalledMessage?.isRecalled).toBe(true)
       expect(recalledMessage?.messageContent).toBe('')
     })
@@ -108,7 +111,7 @@ describe('useMessageStore - Recall and Edit functionality', () => {
     it('should not recall a message beyond time limit', () => {
       const store = useMessageStore()
       const chat = createTestChat()
-      store.initData(chat)
+      store.initData(chat, true) // 使用 immediate: true 进行同步初始化
       
       const message = store.data[1]
       message.createTime = Date.now() - OPERATION_TIME_LIMIT - 1000
@@ -122,7 +125,7 @@ describe('useMessageStore - Recall and Edit functionality', () => {
     it('should not recall an incoming message', () => {
       const store = useMessageStore()
       const chat = createTestChat()
-      store.initData(chat)
+      store.initData(chat, true) // 使用 immediate: true 进行同步初始化
       
       const incomingMessage = store.data.find(m => m.isInMsg)
       expect(incomingMessage).toBeDefined()
@@ -136,7 +139,7 @@ describe('useMessageStore - Recall and Edit functionality', () => {
     it('should not recall an already recalled message', () => {
       const store = useMessageStore()
       const chat = createTestChat()
-      store.initData(chat)
+      store.initData(chat, true) // 使用 immediate: true 进行同步初始化
       
       const messageId = store.data[1].id
       
@@ -149,10 +152,14 @@ describe('useMessageStore - Recall and Edit functionality', () => {
     it('should update reference content when referenced message is recalled', () => {
       const store = useMessageStore()
       const chat = createTestChat()
-      store.initData(chat)
+      store.initData(chat, true) // 使用 immediate: true 进行同步初始化
       
       const referencedMsg = store.data[1]
       const referencingMsg = store.data[2]
+      
+      // 确保被引用的消息创建时间在限制内
+      referencedMsg.createTime = Date.now()
+      referencedMsg.isInMsg = false
       
       referencingMsg.reference = {
         referencedMessageId: referencedMsg.id,
@@ -170,9 +177,13 @@ describe('useMessageStore - Recall and Edit functionality', () => {
     it('should edit a message within time limit', () => {
       const store = useMessageStore()
       const chat = createTestChat()
-      store.initData(chat)
+      store.initData(chat, true) // 使用 immediate: true 进行同步初始化
       
       const message = store.data[1]
+      // 确保消息创建时间在限制内
+      message.createTime = Date.now()
+      message.isInMsg = false
+      
       const newContent = 'Updated content'
       
       const result = store.editMessage(message.id, newContent)
@@ -186,7 +197,7 @@ describe('useMessageStore - Recall and Edit functionality', () => {
     it('should not edit a message beyond time limit', () => {
       const store = useMessageStore()
       const chat = createTestChat()
-      store.initData(chat)
+      store.initData(chat, true) // 使用 immediate: true 进行同步初始化
       
       const message = store.data[1]
       message.createTime = Date.now() - OPERATION_TIME_LIMIT - 1000
@@ -202,7 +213,7 @@ describe('useMessageStore - Recall and Edit functionality', () => {
     it('should not edit with empty content', () => {
       const store = useMessageStore()
       const chat = createTestChat()
-      store.initData(chat)
+      store.initData(chat, true) // 使用 immediate: true 进行同步初始化
       
       const message = store.data[1]
       const originalContent = message.messageContent
@@ -217,7 +228,7 @@ describe('useMessageStore - Recall and Edit functionality', () => {
     it('should not edit an incoming message', () => {
       const store = useMessageStore()
       const chat = createTestChat()
-      store.initData(chat)
+      store.initData(chat, true) // 使用 immediate: true 进行同步初始化
       
       const incomingMessage = store.data.find(m => m.isInMsg)!
       const originalContent = incomingMessage.messageContent
@@ -233,7 +244,7 @@ describe('useMessageStore - Recall and Edit functionality', () => {
     it('should return message by id', () => {
       const store = useMessageStore()
       const chat = createTestChat()
-      store.initData(chat)
+      store.initData(chat, true) // 使用 immediate: true 进行同步初始化
       
       const message = store.data[0]
       const foundMessage = store.getMessageById(message.id)
@@ -245,7 +256,7 @@ describe('useMessageStore - Recall and Edit functionality', () => {
     it('should return undefined for non-existent id', () => {
       const store = useMessageStore()
       const chat = createTestChat()
-      store.initData(chat)
+      store.initData(chat, true) // 使用 immediate: true 进行同步初始化
       
       const foundMessage = store.getMessageById('non-existent-id')
       

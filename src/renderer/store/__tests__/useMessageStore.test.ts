@@ -25,7 +25,7 @@ describe('useMessageStore', () => {
     chat.fromName = 'Test User'
     chat.avatar = 'test-avatar.png'
 
-    store.initData(chat)
+    store.initData(chat, true) // 使用 immediate: true 进行同步初始化
 
     expect(store.currentChat).toEqual(chat)
     expect(store.data.length).toBe(10)
@@ -40,7 +40,7 @@ describe('useMessageStore', () => {
     chat.fromName = 'Test User'
     chat.avatar = 'test-avatar.png'
 
-    store.initData(chat)
+    store.initData(chat, true) // 使用 immediate: true 进行同步初始化
     const initialLength = store.data.length
 
     store.sendMessage('Hello, this is a test message')
@@ -67,7 +67,7 @@ describe('useMessageStore', () => {
     chat.id = 'test-id'
     chat.avatar = 'test-avatar.png'
     
-    store.initData(chat)
+    store.initData(chat, true) // 使用 immediate: true 进行同步初始化
     store.sendMessage('Test message')
 
     const message = store.data.find(m => m.messageContent === 'Test message')
@@ -112,7 +112,7 @@ describe('useMessageStore', () => {
       chat.fromName = 'Test User'
       chat.avatar = 'test-avatar.png'
 
-      store.initData(chat)
+      store.initData(chat, true) // 使用 immediate: true 进行同步初始化
 
       const referencedMsg = new ModelMessage()
       referencedMsg.id = 'ref-msg-id'
@@ -136,7 +136,7 @@ describe('useMessageStore', () => {
       chat.fromName = 'Test User'
       chat.avatar = 'test-avatar.png'
 
-      store.initData(chat)
+      store.initData(chat, true) // 使用 immediate: true 进行同步初始化
 
       const referencedMsg = new ModelMessage()
       referencedMsg.id = 'ref-msg-id'
@@ -157,7 +157,7 @@ describe('useMessageStore', () => {
       chat.fromName = 'Test User'
       chat.avatar = 'test-avatar.png'
 
-      store.initData(chat)
+      store.initData(chat, true) // 使用 immediate: true 进行同步初始化
 
       const longContent = 'This is a very long message that exceeds fifty characters and should be truncated properly when referenced in a reply message'
       const referencedMsg = new ModelMessage()
