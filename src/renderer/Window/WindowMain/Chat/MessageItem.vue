@@ -45,9 +45,16 @@ const formatTime = formatMessageTime;
 
 const handleContextMenu = (e: MouseEvent) => {
   e.preventDefault();
+  e.stopPropagation();
   contextMenuX.value = e.clientX;
   contextMenuY.value = e.clientY;
   contextMenuVisible.value = true;
+};
+
+const handleMessageClick = (e: MouseEvent) => {
+  if (contextMenuVisible.value) {
+    closeContextMenu();
+  }
 };
 
 const handleContextMenuClick = (itemId: string) => {
@@ -127,10 +134,11 @@ const handleMouseLeave = () => {
 
 <template>
   <template v-if="data?.isInMsg">
-    <div 
+    <div
       class="messageItem left"
       :class="{ highlighted: isHighlighted }"
       @contextmenu="handleContextMenu"
+      @click="handleMessageClick"
     >
       <div class="avatar">
         <img :src="data?.avatar" alt=""/>
@@ -161,10 +169,11 @@ const handleMouseLeave = () => {
     </div>
   </template>
   <template v-else>
-    <div 
+    <div
       class="messageItem right"
       :class="{ highlighted: isHighlighted }"
       @contextmenu="handleContextMenu"
+      @click="handleMessageClick"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
     >
@@ -185,10 +194,10 @@ const handleMouseLeave = () => {
           <template v-else>
             <div v-if="!isEditing" class="message-text">{{ data?.messageContent }}</div>
             <div v-if="isEditing" class="edit-container">
-              <textarea 
+              <textarea
                 :class="['edit-input', 'edit-input-' + data.id]"
                 v-model="editContent"
-                @keyup.enter="saveEdit"
+                @keydown.enter.prevent="saveEdit"
                 @keyup.esc="cancelEdit"
                 rows="1"
               ></textarea>
