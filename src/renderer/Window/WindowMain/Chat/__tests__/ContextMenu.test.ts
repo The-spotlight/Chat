@@ -3,6 +3,10 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import ContextMenu from '../ContextMenu.vue'
 
+const defaultItems = [
+  { key: 'reference', label: '引用', icon: '↩', visible: true }
+]
+
 describe('ContextMenu', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -18,7 +22,8 @@ describe('ContextMenu', () => {
       props: {
         visible: false,
         x: 100,
-        y: 100
+        y: 100,
+        items: defaultItems
       },
       attachTo: document.body
     })
@@ -31,7 +36,8 @@ describe('ContextMenu', () => {
       props: {
         visible: true,
         x: 100,
-        y: 100
+        y: 100,
+        items: defaultItems
       },
       attachTo: document.body
     })
@@ -44,7 +50,8 @@ describe('ContextMenu', () => {
       props: {
         visible: true,
         x: 200,
-        y: 150
+        y: 150,
+        items: defaultItems
       },
       attachTo: document.body
     })
@@ -60,7 +67,8 @@ describe('ContextMenu', () => {
       props: {
         visible: true,
         x: 100,
-        y: 100
+        y: 100,
+        items: defaultItems
       },
       attachTo: document.body
     })
@@ -74,7 +82,8 @@ describe('ContextMenu', () => {
       props: {
         visible: true,
         x: 100,
-        y: 100
+        y: 100,
+        items: defaultItems
       },
       attachTo: document.body
     })
@@ -84,6 +93,7 @@ describe('ContextMenu', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.emitted('select')).toBeTruthy()
+    expect(wrapper.emitted('select')![0]).toEqual(['reference'])
   })
 
   it('should emit close event when menu item is clicked', async () => {
@@ -91,7 +101,8 @@ describe('ContextMenu', () => {
       props: {
         visible: true,
         x: 100,
-        y: 100
+        y: 100,
+        items: defaultItems
       },
       attachTo: document.body
     })
@@ -108,7 +119,8 @@ describe('ContextMenu', () => {
       props: {
         visible: true,
         x: 100,
-        y: 100
+        y: 100,
+        items: defaultItems
       },
       attachTo: document.body
     })
@@ -122,12 +134,55 @@ describe('ContextMenu', () => {
       props: {
         visible: true,
         x: 100,
-        y: 100
+        y: 100,
+        items: defaultItems
       },
       attachTo: document.body
     })
 
     const menuItem = document.querySelector('.menu-item')
     expect(menuItem?.classList.contains('menu-item')).toBe(true)
+  })
+
+  it('should filter out invisible items', () => {
+    const itemsWithInvisible = [
+      { key: 'reference', label: '引用', icon: '↩', visible: true },
+      { key: 'recall', label: '撤回', icon: '↶', visible: false }
+    ]
+
+    mount(ContextMenu, {
+      props: {
+        visible: true,
+        x: 100,
+        y: 100,
+        items: itemsWithInvisible
+      },
+      attachTo: document.body
+    })
+
+    const menuItems = document.querySelectorAll('.menu-item')
+    expect(menuItems.length).toBe(1)
+    expect(menuItems[0]?.textContent).toContain('引用')
+  })
+
+  it('should display multiple visible items', () => {
+    const multipleItems = [
+      { key: 'reference', label: '引用', icon: '↩', visible: true },
+      { key: 'recall', label: '撤回', icon: '↶', visible: true },
+      { key: 'edit', label: '编辑', icon: '✎', visible: true }
+    ]
+
+    mount(ContextMenu, {
+      props: {
+        visible: true,
+        x: 100,
+        y: 100,
+        items: multipleItems
+      },
+      attachTo: document.body
+    })
+
+    const menuItems = document.querySelectorAll('.menu-item')
+    expect(menuItems.length).toBe(3)
   })
 })
