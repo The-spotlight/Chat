@@ -76,6 +76,62 @@ describe('useChatStore', () => {
     expect(store.filteredData.length).toBe(10)
   })
 
+  it('should search for keywords with special characters like dot', () => {
+    const store = useChatStore()
+    
+    store.data[0].fromName = 'v2.0项目组'
+    store.data[1].fromName = 'v3.0项目组'
+    store.data[2].fromName = '测试组'
+    
+    store.setSearchKeyword('v2.0')
+    expect(store.filteredData.length).toBe(1)
+    expect(store.filteredData[0].fromName).toBe('v2.0项目组')
+    
+    store.setSearchKeyword('v3.0')
+    expect(store.filteredData.length).toBe(1)
+    expect(store.filteredData[0].fromName).toBe('v3.0项目组')
+  })
+
+  it('should search for keywords with special characters like parentheses', () => {
+    const store = useChatStore()
+    
+    store.data[0].fromName = '测试(一组)'
+    store.data[1].fromName = '测试(二组)'
+    store.data[2].fromName = '普通组'
+    
+    store.setSearchKeyword('(一')
+    expect(store.filteredData.length).toBe(1)
+    expect(store.filteredData[0].fromName).toBe('测试(一组)')
+    
+    store.setSearchKeyword('二组)')
+    expect(store.filteredData.length).toBe(1)
+    expect(store.filteredData[0].fromName).toBe('测试(二组)')
+  })
+
+  it('should search for keywords with special characters like plus', () => {
+    const store = useChatStore()
+    
+    store.data[0].fromName = 'C++开发组'
+    store.data[1].fromName = 'Java开发组'
+    store.data[2].fromName = 'Python开发组'
+    
+    store.setSearchKeyword('C++')
+    expect(store.filteredData.length).toBe(1)
+    expect(store.filteredData[0].fromName).toBe('C++开发组')
+  })
+
+  it('should search lastMsg with special characters', () => {
+    const store = useChatStore()
+    
+    store.data[0].lastMsg = 'v1.2版本已发布'
+    store.data[1].lastMsg = 'v2.0版本在路上'
+    store.data[2].lastMsg = '其他消息'
+    
+    store.setSearchKeyword('v1.2')
+    expect(store.filteredData.length).toBe(1)
+    expect(store.filteredData[0].lastMsg).toBe('v1.2版本已发布')
+  })
+
   it('should handle search with no matches', () => {
     const store = useChatStore()
     

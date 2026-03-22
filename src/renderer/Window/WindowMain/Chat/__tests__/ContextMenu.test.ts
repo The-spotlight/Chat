@@ -199,4 +199,79 @@ describe('ContextMenu', () => {
     const menuItem = document.querySelector('.menu-item')
     expect(menuItem?.classList.contains('menu-item')).toBe(true)
   })
+
+  describe('Boundary detection', () => {
+    it('should adjust position when menu would overflow right edge', () => {
+      const originalInnerWidth = window.innerWidth
+      Object.defineProperty(window, 'innerWidth', {
+        value: 800,
+        writable: true
+      })
+
+      const wrapper = mount(ContextMenu, {
+        props: {
+          visible: true,
+          x: 750,
+          y: 100,
+          items: testItems
+        },
+        attachTo: document.body
+      })
+
+      const menu = document.querySelector('.context-menu') as HTMLElement
+      expect(menu).not.toBeNull()
+      const leftValue = parseInt(menu.style.left, 10)
+      expect(leftValue + 120).toBeLessThanOrEqual(800)
+
+      Object.defineProperty(window, 'innerWidth', {
+        value: originalInnerWidth,
+        writable: true
+      })
+    })
+
+    it('should adjust position when menu would overflow bottom edge', () => {
+      const originalInnerHeight = window.innerHeight
+      Object.defineProperty(window, 'innerHeight', {
+        value: 600,
+        writable: true
+      })
+
+      const wrapper = mount(ContextMenu, {
+        props: {
+          visible: true,
+          x: 100,
+          y: 550,
+          items: testItems
+        },
+        attachTo: document.body
+      })
+
+      const menu = document.querySelector('.context-menu') as HTMLElement
+      expect(menu).not.toBeNull()
+      const topValue = parseInt(menu.style.top, 10)
+      expect(topValue + 200).toBeLessThanOrEqual(600)
+
+      Object.defineProperty(window, 'innerHeight', {
+        value: originalInnerHeight,
+        writable: true
+      })
+    })
+
+    it('should not adjust position when menu fits within viewport', () => {
+      const wrapper = mount(ContextMenu, {
+        props: {
+          visible: true,
+          x: 100,
+          y: 100,
+          items: testItems
+        },
+        attachTo: document.body
+      })
+
+      const menu = document.querySelector('.context-menu') as HTMLElement
+      expect(menu).not.toBeNull()
+      expect(menu.style.left).toBe('100px')
+      expect(menu.style.top).toBe('100px')
+    })
+  })
 })

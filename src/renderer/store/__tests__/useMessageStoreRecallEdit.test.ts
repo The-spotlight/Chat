@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useMessageStore } from '../useMessageStore'
+import { useChatStore } from '../useChatStore'
 import { OPERATION_TIME_LIMIT, canOperateMessage, isWithinTimeLimit } from '../../utils/messageUtils'
 import { ModelChat } from '../../../model/ModelChat'
 import { ModelMessage } from '../../../model/ModelMessage'
@@ -341,6 +342,84 @@ describe('useMessageStore - Recall and Edit functionality', () => {
       expect(recalledMsg?.isRecalled).toBe(true)
       expect(recalledMsg?.messageContent).toBe('')
       expect(recalledMsg?.messageContent).not.toBe(originalContent)
+    })
+
+    it('should clear referencedFromName when referenced message is recalled', () => {
+      const store = useMessageStore()
+      const chat = createTestChat()
+      store.initData(chat)
+      
+      const referencedMsg = store.data[1]
+      const referencingMsg = store.data[2]
+      
+      referencingMsg.reference = {
+        referencedMessageId: referencedMsg.id,
+        referencedFromName: 'Original Sender',
+        referencedContent: 'Original content'
+      }
+      
+      store.recallMessage(referencedMsg.id)
+      
+      const updatedReferencingMsg = store.data.find(m => m.id === referencingMsg.id)
+      expect(updatedReferencingMsg?.reference?.referencedFromName).toBe('')
+      expect(updatedReferencingMsg?.reference?.referencedContent).toBe('消息已被撤回')
+    })
+  })
+
+  describe('Bug #1 regression: sendMessage should update chatStore lastMessage', () => {
+    it('should update chatStore lastMessage when sending a message', () => {
+      const messageStore = useMessageStore()
+      const chatStore = useChatStore()
+      
+      const chat = createTestChat()
+      chat.id = chatStore.data[0].id
+      chatStore.data[0].isSelected = true
+      chatStore.data.forEach(c => { if (c.id !== chat.id) c.isSelected = false })
+      
+      messageStore.initData(chat)
+      
+      const originalLastMsg = chatStore.data[0].lastMsg
+      const newMessage = 'New test message'
+      
+      messageStore.sendMessage(newMessage)
+      
+      expect(chatStore.data[0].lastMsg).toBe(newMessage)
+      expect(chatStore.data[0].lastMsg).not.toBe(originalLastMsg)
+    })
+
+    it('should update sendTime to "刚刚" when sending a message', () => {
+      const messageStore = useMessageStore()
+      const chatStore = useChatStore()
+      
+      const chat = createTestChat()
+      chat.id = chatStore.data[0].id
+      chatStore.data[0].isSelected = true
+      chatStore.data.forEach(c => { if (c.id !== chat.id) c.isSelected = false })
+      
+      messageStore.initData(chat)
+      
+      messageStore.sendMessage('Test message')
+      
+      expect(chatStore.data[0].sendTime).toBe('刚刚')
+    })
+
+    it('should add message to data when sending', () => {
+      const messageStore = useMessageStore()
+      const chatStore = useChatStore()
+      
+      const chat = createTestChat()
+      chat.id = chatStore.data[0].id
+      chatStore.data[0].isSelected = true
+      chatStore.data.forEach(c => { if (c.id !== chat.id) c.isSelected = false })
+      
+      messageStore.initData(chat)
+      
+      const initialCount = messageStore.data.length
+      
+      messageStore.sendMessage('New message')
+      
+      expect(messageStore.data.length).toBe(initialCount + 1)
+      expect(messageStore.data[messageStore.data.length - 1].messageContent).toBe('New message')
     })
   })
 })

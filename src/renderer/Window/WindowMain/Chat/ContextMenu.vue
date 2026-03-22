@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 
 export interface ContextMenuItem {
   id: string;
@@ -22,6 +22,29 @@ const emit = defineEmits<{
 }>();
 
 const menuRef = ref<HTMLDivElement | null>(null);
+const MENU_MIN_WIDTH = 120;
+const MENU_MAX_HEIGHT = 200;
+
+const adjustedPosition = computed(() => {
+  let adjustedX = props.x;
+  let adjustedY = props.y;
+
+  const menuWidth = MENU_MIN_WIDTH;
+  const menuHeight = MENU_MAX_HEIGHT;
+
+  if (props.x + menuWidth > window.innerWidth) {
+    adjustedX = window.innerWidth - menuWidth - 10;
+  }
+
+  if (props.y + menuHeight > window.innerHeight) {
+    adjustedY = window.innerHeight - menuHeight - 10;
+  }
+
+  return {
+    left: adjustedX + 'px',
+    top: adjustedY + 'px'
+  };
+});
 
 const handleClickOutside = (event: MouseEvent) => {
   if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
@@ -60,7 +83,7 @@ onUnmounted(() => {
       v-if="visible && items.length > 0"
       ref="menuRef"
       class="context-menu"
-      :style="{ left: x + 'px', top: y + 'px' }"
+      :style="adjustedPosition"
     >
       <template v-for="item in items" :key="item.id">
         <div 

@@ -3,6 +3,7 @@ import {ModelChat} from "../../model/ModelChat";
 import {ref, computed} from "vue";
 import {ModelMessage, MessageReference} from "../../model/ModelMessage";
 import { canOperateMessage, isWithinTimeLimit, truncateContent } from '../utils/messageUtils';
+import { useChatStore } from "./useChatStore";
 
 /**
  * Message Store - 消息状态管理
@@ -92,6 +93,9 @@ export const useMessageStore = defineStore('message', () => {
             }
             
             data.value.push(model);
+            
+            const chatStore = useChatStore();
+            chatStore.updateLastMessage(currentChat.value.id!, content);
         };
 
         let setHighlightedMessageId = (id: string | null) => {
@@ -115,6 +119,7 @@ export const useMessageStore = defineStore('message', () => {
                         ...msg,
                         reference: {
                             ...msg.reference,
+                            referencedFromName: '',
                             referencedContent: '消息已被撤回'
                         }
                     };

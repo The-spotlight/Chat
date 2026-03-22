@@ -10,6 +10,8 @@ const messageStore = useMessageStore();
 const chatStore = useChatStore();
 const messageListRef = ref<HTMLDivElement | null>(null);
 const messageItemRefs = ref<Map<string, HTMLElement>>(new Map());
+const isInitialLoad = ref(true);
+const shouldAutoScroll = ref(true);
 
 onMounted(() => {
   chatStore.initializeMessageStore();
@@ -61,6 +63,10 @@ const showUnreadBanner = computed(() => {
 watch(
   () => messageStore.data.length,
   () => {
+    if (!shouldAutoScroll.value) {
+      shouldAutoScroll.value = true;
+      return;
+    }
     nextTick(() => {
       if (messageListRef.value) {
         messageListRef.value.scrollTop = messageListRef.value.scrollHeight;
@@ -74,6 +80,7 @@ watch(
   () => chatStore.getSelectedChat,
   (newChat) => {
     if (newChat && newChat.unreadCount && newChat.unreadCount > 0) {
+      shouldAutoScroll.value = false;
       nextTick(() => {
         scrollToFirstUnread();
       });
