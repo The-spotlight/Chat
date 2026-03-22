@@ -118,7 +118,7 @@ export const useChatStore = defineStore('chat', () => {
         data.value.forEach(i => i.isSelected = false)
         item.isSelected = true
         item.unreadCount = 0;
-        if (options?.clearSearch !== false) {
+        if (options?.clearSearch === true) {
             searchKeyword.value = '';
         }
         const messageStore = useMessageStore()
@@ -130,11 +130,13 @@ export const useChatStore = defineStore('chat', () => {
     });
 
     const updateLastMessage = (chatId: string, content: string) => {
-        const chat = data.value.find(item => item.id === chatId);
-        if (chat) {
+        const chatIndex = data.value.findIndex(item => item.id === chatId);
+        if (chatIndex !== -1) {
+            const chat = data.value[chatIndex];
             chat.lastMsg = content;
             chat.sendTime = '刚刚';
             chat.lastMessageTime = Date.now();
+            data.value = [...data.value];
         }
     };
 
