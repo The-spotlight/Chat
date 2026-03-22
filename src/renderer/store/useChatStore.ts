@@ -58,18 +58,46 @@ export const useChatStore = defineStore('chat', () => {
         };
     });
 
+    // 排序后的会话列表
+    const sortedData = computed(() => {
+        return [...data.value].sort((a, b) => {
+            // 置顶会话优先
+            if (a.isPinned !== b.isPinned) {
+                return a.isPinned ? -1 : 1;
+            }
+            // 置顶会话之间按置顶时间倒序排列（最新置顶的排在最前面）
+            if (a.isPinned && b.isPinned) {
+                return (b.pinnedTime || 0) - (a.pinnedTime || 0);
+            }
+            // 未置顶会话之间按最后消息时间倒序排列
+            // 将 sendTime 转换为可比较的数字
+            const getTimeValue = (time: number | string | undefined): number => {
+                if (typeof time === 'number') return time;
+                if (typeof time === 'string') {
+                    // 简单的字符串比较，实际项目中可能需要更复杂的逻辑
+                    if (time === '刚刚') return Date.now();
+                    if (time === '昨天') return Date.now() - 86400000;
+                    return new Date(time).getTime() || 0;
+                }
+                return 0;
+            };
+            return getTimeValue(b.sendTime) - getTimeValue(a.sendTime);
+        });
+    });
+
     const filteredData = computed(() => {
         const trimmedKeyword = searchKeyword.value.trim();
         
-        // 空搜索词，返回全部数据
+        // 空搜索词，返回排序后的全部数据
         if (!trimmedKeyword) {
-            return data.value;
+            return sortedData.value;
         }
 
         // 转义搜索关键词中的正则特殊字符
         const safeKeyword = escapeRegExp(trimmedKeyword);
 
-        return data.value.filter(item => {
+        // 搜索时不改变排序顺序，只在 sortedData 基础上过滤
+        return sortedData.value.filter(item => {
             // 搜索匹配：聊天对象名称 或 最后一条消息内容
             const nameMatch = safeIncludes(item.fromName, safeKeyword);
             const lastMsgMatch = safeIncludes(item.lastMsg, safeKeyword);
@@ -82,6 +110,8 @@ export const useChatStore = defineStore('chat', () => {
         if (item.isSelected) return;
         data.value.forEach(i => i.isSelected = false)
         item.isSelected = true
+        // 切换到会话时清除未读计数
+        clearUnread(item.id!)
         const messageStore = useMessageStore()
         messageStore.initData(item)
     }
@@ -105,17 +135,73 @@ export const useChatStore = defineStore('chat', () => {
         searchKeyword.value = '';
     };
 
+    // 切换置顶状态
+    const togglePin = (chatId: string) => {
+        const chat = data.value.find(item => item.id === chatId);
+        if (chat) {
+            chat.isPinned = !chat.isPinned;
+            chat.pinnedTime = chat.isPinned ? Date.now() : undefined;
+        }
+    };
+
+    // 增加未读计数
+    const incrementUnread = (chatId: string) => {
+        const chat = data.value.find(item => item.id === chatId);
+        // 如果当前正在查看该会话，不增加未读计数
+        if (chat && !chat.isSelected) {
+            chat.unreadCount++;
+        }
+    };
+
+    // 清除未读计数
+    const clearUnread = (chatId: string) => {
+        const chat = data.value.find(item => item.id === chatId);
+        if (chat) {
+            chat.unreadCount = 0;
+        }
+    };
+
+    // 全部已读
+    const markAllAsRead = () => {
+        data.value.forEach(chat => {
+            chat.unreadCount = 0;
+        });
+    };
+
+    // 获取未读总数
+    const totalUnreadCount = computed(() => {
+        return data.value.reduce((sum, chat) => sum + chat.unreadCount, 0);
+    });
+
+    // 是否有未读消息
+    const hasUnreadMessages = computed(() => {
+        return totalUnreadCount.value > 0;
+    });
+
+    // 获取未读计数显示文本（处理 99+ 逻辑）
+    const getUnreadDisplay = (count: number): string => {
+        if (count <= 0) return '';
+        if (count > 99) return '99+';
+        return String(count);
+    };
+
     return {
         data,
         selectItem,
         searchKeyword,
         setSearchKeyword,
         filteredData,
+        sortedData,
         searchStats,
         clearSearch,
         getSelectedChat,
-        updateLastMessage
+        updateLastMessage,
+        togglePin,
+        incrementUnread,
+        clearUnread,
+        markAllAsRead,
+        totalUnreadCount,
+        hasUnreadMessages,
+        getUnreadDisplay
     }
 })
-
-

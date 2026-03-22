@@ -8,6 +8,7 @@ import { canOperateMessage, formatMessageTime } from '../../../utils/messageUtil
 const props = defineProps<{ 
   data: ModelMessage;
   isHighlighted?: boolean;
+  isUnread?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -123,7 +124,7 @@ const handleMouseLeave = () => {
   <template v-if="data?.isInMsg">
     <div 
       class="messageItem left"
-      :class="{ highlighted: isHighlighted }"
+      :class="{ highlighted: isHighlighted, unread: isUnread }"
       @contextmenu="handleContextMenu"
     >
       <div class="avatar">
@@ -157,7 +158,7 @@ const handleMouseLeave = () => {
   <template v-else>
     <div 
       class="messageItem right"
-      :class="{ highlighted: isHighlighted }"
+      :class="{ highlighted: isHighlighted, unread: isUnread }"
       @contextmenu="handleContextMenu"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
@@ -254,12 +255,36 @@ const handleMouseLeave = () => {
   animation: highlight-fade 2s ease-out;
 }
 
+.unread {
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: #ff4d4f;
+    animation: unread-pulse 2s ease-in-out infinite;
+  }
+}
+
 @keyframes highlight-fade {
   0% {
     background: rgba(149, 236, 105, 0.4);
   }
   100% {
     background: transparent;
+  }
+}
+
+@keyframes unread-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
   }
 }
 

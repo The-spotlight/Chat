@@ -7,4 +7,7 @@ export class ModelChat extends ModelBase {
     lastMsg?: string;
     avatar?: string;
     chatType?: number; // 0：单聊， 2：公众号，3：文件传输助手
+    isPinned = false; // 置顶状态
+    pinnedTime?: number; // 置顶时间戳
+    unreadCount = 0; // 未读消息数量
 }
