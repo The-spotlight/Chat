@@ -366,5 +366,71 @@ describe('useChatStore', () => {
       expect(store.hasUnread).toBe(true)
     })
   })
+
+  describe('Regression Tests', () => {
+    describe('Bug #1: Last message in chat list not updating after sending message', () => {
+      it('should update last message in chat store when message is sent via message store', () => {
+        const store = useChatStore()
+        const messageStore = useMessageStore()
+        
+        const chat = store.data[0]
+        const chatId = chat.id!
+        const originalLastMsg = chat.lastMsg
+        
+        store.selectItem(chat)
+        messageStore.sendMessage('New test message')
+        
+        const updatedChat = store.data.find(c => c.id === chatId)
+        expect(updatedChat?.lastMsg).not.toBe(originalLastMsg)
+        expect(updatedChat?.lastMsg).toBe('New test message')
+        expect(updatedChat?.sendTime).toBe('刚刚')
+      })
+
+      it('should update last message with very long content', () => {
+        const store = useChatStore()
+        const messageStore = useMessageStore()
+        
+        const chat = store.data[0]
+        const chatId = chat.id!
+        const longContent = 'This is a very long message that contains many characters to test the edge case where content exceeds normal display limits'
+        
+        store.selectItem(chat)
+        messageStore.sendMessage(longContent)
+        
+        const updatedChat = store.data.find(c => c.id === chatId)
+        expect(updatedChat?.lastMsg).toBe(longContent)
+      })
+
+      it('should update last message with special characters', () => {
+        const store = useChatStore()
+        const messageStore = useMessageStore()
+        
+        const chat = store.data[0]
+        const chatId = chat.id!
+        const specialContent = 'Hello! @#$%^&*() 中文测试 🎉 emoji'
+        
+        store.selectItem(chat)
+        messageStore.sendMessage(specialContent)
+        
+        const updatedChat = store.data.find(c => c.id === chatId)
+        expect(updatedChat?.lastMsg).toBe(specialContent)
+      })
+
+      it('should not update other chats when sending message', () => {
+        const store = useChatStore()
+        const messageStore = useMessageStore()
+        
+        const chat1 = store.data[0]
+        const chat2 = store.data[1]
+        const chat2OriginalLastMsg = chat2.lastMsg
+        
+        store.selectItem(chat1)
+        messageStore.sendMessage('Test message')
+        
+        const updatedChat2 = store.data.find(c => c.id === chat2.id)
+        expect(updatedChat2?.lastMsg).toBe(chat2OriginalLastMsg)
+      })
+    })
+  })
 })
 

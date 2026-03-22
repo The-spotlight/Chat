@@ -164,6 +164,143 @@ describe('useMessageStore - Recall and Edit functionality', () => {
       
       expect(referencingMsg.reference?.referencedContent).toBe('消息已被撤回')
     })
+
+    it('should update reference content and clear sender name when referenced message is recalled - Bug #3', () => {
+      const store = useMessageStore()
+      const chat = createTestChat()
+      store.initData(chat)
+      
+      const referencedMsg = store.data[1]
+      const referencingMsg = store.data[2]
+      
+      referencingMsg.reference = {
+        referencedMessageId: referencedMsg.id,
+        referencedFromName: 'Test User',
+        referencedContent: 'Original content'
+      }
+      
+      store.recallMessage(referencedMsg.id)
+      
+      expect(referencingMsg.reference?.referencedContent).toBe('消息已被撤回')
+      expect(referencingMsg.reference?.referencedFromName).toBe('')
+    })
+
+    it('should update all referencing messages when a message is recalled', () => {
+      const store = useMessageStore()
+      const chat = createTestChat()
+      store.initData(chat)
+      
+      const referencedMsg = store.data[1]
+      const referencingMsg1 = store.data[2]
+      const referencingMsg2 = store.data[3]
+      
+      referencingMsg1.reference = {
+        referencedMessageId: referencedMsg.id,
+        referencedFromName: 'Test User',
+        referencedContent: 'Original content 1'
+      }
+      
+      referencingMsg2.reference = {
+        referencedMessageId: referencedMsg.id,
+        referencedFromName: 'Test User',
+        referencedContent: 'Original content 2'
+      }
+      
+      store.recallMessage(referencedMsg.id)
+      
+      expect(referencingMsg1.reference?.referencedContent).toBe('消息已被撤回')
+      expect(referencingMsg1.reference?.referencedFromName).toBe('')
+      expect(referencingMsg2.reference?.referencedContent).toBe('消息已被撤回')
+      expect(referencingMsg2.reference?.referencedFromName).toBe('')
+    })
+
+    it('should handle nested references when multiple messages reference each other', () => {
+      const store = useMessageStore()
+      const chat = createTestChat()
+      store.initData(chat)
+      
+      const msgA = store.data[1]
+      const msgB = store.data[2]
+      const msgC = store.data[3]
+      
+      msgB.reference = {
+        referencedMessageId: msgA.id,
+        referencedFromName: 'User A',
+        referencedContent: 'Message A content'
+      }
+      
+      msgC.reference = {
+        referencedMessageId: msgB.id,
+        referencedFromName: 'User B',
+        referencedContent: 'Message B content'
+      }
+      
+      store.recallMessage(msgA.id)
+      
+      expect(msgB.reference?.referencedContent).toBe('消息已被撤回')
+      expect(msgB.reference?.referencedFromName).toBe('')
+      expect(msgC.reference?.referencedContent).toBe('Message B content')
+      expect(msgC.reference?.referencedFromName).toBe('User B')
+    })
+
+    it('should handle case when referencing message is incoming and outgoing', () => {
+      const store = useMessageStore()
+      const chat = createTestChat()
+      store.initData(chat)
+      
+      const referencedMsg = store.data.find(m => !m.isInMsg)!
+      const incomingRefMsg = store.data.find(m => m.isInMsg)!
+      const outgoingRefMsg = store.data.find(m => !m.isInMsg && m.id !== referencedMsg.id)!
+      
+      incomingRefMsg.reference = {
+        referencedMessageId: referencedMsg.id,
+        referencedFromName: 'Me',
+        referencedContent: 'Original outgoing message'
+      }
+      
+      outgoingRefMsg.reference = {
+        referencedMessageId: referencedMsg.id,
+        referencedFromName: 'Me',
+        referencedContent: 'Original outgoing message'
+      }
+      
+      store.recallMessage(referencedMsg.id)
+      
+      expect(incomingRefMsg.reference?.referencedContent).toBe('消息已被撤回')
+      expect(incomingRefMsg.reference?.referencedFromName).toBe('')
+      expect(outgoingRefMsg.reference?.referencedContent).toBe('消息已被撤回')
+      expect(outgoingRefMsg.reference?.referencedFromName).toBe('')
+    })
+
+    it('should not affect unrelated references when recalling a message', () => {
+      const store = useMessageStore()
+      const chat = createTestChat()
+      store.initData(chat)
+      
+      const msgA = store.data[1]
+      const msgB = store.data[2]
+      const msgC = store.data[3]
+      const msgD = store.data[4]
+      
+      msgB.reference = {
+        referencedMessageId: msgA.id,
+        referencedFromName: 'User A',
+        referencedContent: 'Message A'
+      }
+      
+      msgD.reference = {
+        referencedMessageId: msgC.id,
+        referencedFromName: 'User C',
+        referencedContent: 'Message C'
+      }
+      
+      store.recallMessage(msgA.id)
+      
+      expect(msgB.reference?.referencedContent).toBe('消息已被撤回')
+      expect(msgB.reference?.referencedFromName).toBe('')
+      expect(msgD.reference?.referencedContent).toBe('Message C')
+      expect(msgD.reference?.referencedFromName).toBe('User C')
+    })
   })
 
   describe('Edit functionality', () => {
