@@ -103,10 +103,9 @@ export const useChatStore = defineStore('chat', () => {
         let baseData = data.value;
         
         if (trimmedKeyword) {
-            const safeKeyword = escapeRegExp(trimmedKeyword);
             baseData = data.value.filter(item => {
-                const nameMatch = safeIncludes(item.fromName, safeKeyword);
-                const lastMsgMatch = safeIncludes(item.lastMsg, safeKeyword);
+                const nameMatch = safeIncludes(item.fromName, trimmedKeyword);
+                const lastMsgMatch = safeIncludes(item.lastMsg, trimmedKeyword);
                 return nameMatch || lastMsgMatch;
             });
         }
@@ -118,12 +117,12 @@ export const useChatStore = defineStore('chat', () => {
         if (item.isSelected) return;
         data.value.forEach(i => i.isSelected = false)
         item.isSelected = true
+        const messageStore = useMessageStore()
+        messageStore.initData(item)
         item.unreadCount = 0;
         if (options?.clearSearch !== false) {
             searchKeyword.value = '';
         }
-        const messageStore = useMessageStore()
-        messageStore.initData(item)
     }
 
     const getSelectedChat = computed(() => {

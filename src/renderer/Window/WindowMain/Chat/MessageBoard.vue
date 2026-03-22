@@ -62,6 +62,9 @@ watch(
   () => messageStore.data.length,
   () => {
     nextTick(() => {
+      if (messageStore.consumeSkipScrollFlag()) {
+        return;
+      }
       if (messageListRef.value) {
         messageListRef.value.scrollTop = messageListRef.value.scrollHeight;
       }
