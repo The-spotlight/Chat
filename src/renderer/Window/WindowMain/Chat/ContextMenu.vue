@@ -67,12 +67,12 @@ const handleItemClick = (item: ContextMenuItem) => {
 const visibleItems = ref<ContextMenuItem[]>([]);
 
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside);
+  document.addEventListener('mousedown', handleClickOutside);
   document.addEventListener('keydown', handleEscape);
 });
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener('mousedown', handleClickOutside);
   document.removeEventListener('keydown', handleEscape);
 });
 </script>

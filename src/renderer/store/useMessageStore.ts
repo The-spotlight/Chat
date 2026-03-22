@@ -119,6 +119,7 @@ export const useMessageStore = defineStore('message', () => {
                         ...msg,
                         reference: {
                             ...msg.reference,
+                            referencedMessageId: '',
                             referencedFromName: '',
                             referencedContent: '消息已被撤回'
                         }

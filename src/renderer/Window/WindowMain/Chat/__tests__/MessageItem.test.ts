@@ -195,4 +195,57 @@ describe('MessageItem', () => {
     const referenceText = wrapper.find('.reference-text').text()
     expect(referenceText).toBe('This is a very long reference content that should be truncated at 50 characters...')
   })
+
+  describe('Bug Fix Regression Tests', () => {
+    it('Bug #1: should not add newline when saving edit with Enter key', async () => {
+      const message = createMessage(false, 'Original content')
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      const messageStore = useMessageStore()
+      messageStore.initData({ id: 'test-chat', fromName: 'Test', avatar: 'test.png' })
+
+      wrapper.vm.isEditing = true
+      wrapper.vm.editContent = 'Original content'
+      
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      expect(textarea.exists()).toBe(true)
+      
+      await textarea.setValue('Updated content')
+      
+      const editMessageSpy = vi.spyOn(messageStore, 'editMessage')
+      
+      await textarea.trigger('keydown', { key: 'Enter' })
+
+      expect(editMessageSpy).toHaveBeenCalledWith(message.id, 'Updated content')
+      expect(wrapper.vm.isEditing).toBe(false)
+    })
+
+    it('Bug #2: should cancel edit when pressing Escape key', async () => {
+      const message = createMessage(false, 'Original content')
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      const messageStore = useMessageStore()
+      messageStore.initData({ id: 'test-chat', fromName: 'Test', avatar: 'test.png' })
+
+      wrapper.vm.isEditing = true
+      wrapper.vm.editContent = 'Original content'
+      
+      await wrapper.vm.$nextTick()
+
+      const cancelEditSpy = vi.spyOn(wrapper.vm, 'cancelEdit')
+      
+      wrapper.vm.cancelEdit()
+      
+      expect(cancelEditSpy).toHaveBeenCalled()
+      expect(wrapper.vm.isEditing).toBe(false)
+      expect(wrapper.vm.editContent).toBe('')
+    })
+  })
 })

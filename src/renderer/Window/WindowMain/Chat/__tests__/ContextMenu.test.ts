@@ -274,4 +274,57 @@ describe('ContextMenu', () => {
       expect(menu.style.top).toBe('100px')
     })
   })
+
+  describe('Bug Fix Regression Tests', () => {
+    it('Bug #3: should close menu when clicking outside of menu', async () => {
+      const wrapper = mount(ContextMenu, {
+        props: {
+          visible: true,
+          x: 100,
+          y: 100,
+          items: testItems
+        },
+        attachTo: document.body
+      })
+
+      expect(document.querySelector('.context-menu')).not.toBeNull()
+
+      document.dispatchEvent(new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+        clientX: 0,
+        clientY: 0
+      }))
+
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('close')).toBeTruthy()
+    })
+
+    it('Bug #3: should not close menu when clicking inside menu', async () => {
+      const wrapper = mount(ContextMenu, {
+        props: {
+          visible: true,
+          x: 100,
+          y: 100,
+          items: testItems
+        },
+        attachTo: document.body
+      })
+
+      expect(document.querySelector('.context-menu')).not.toBeNull()
+
+      const menu = document.querySelector('.context-menu') as HTMLElement
+      menu.dispatchEvent(new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+        clientX: 110,
+        clientY: 110
+      }))
+
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('close')).toBeFalsy()
+    })
+  })
 })
