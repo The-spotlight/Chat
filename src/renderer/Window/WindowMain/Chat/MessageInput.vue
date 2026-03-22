@@ -11,7 +11,8 @@ const inputContent = ref("");
 const inputRef = ref<HTMLTextAreaElement | null>(null);
 
 const canSend = computed(() => {
-  return inputContent.value.trim().length > 0 && chatStore.getSelectedChat !== null;
+  const trimmedContent = inputContent.value.replace(/[\s\r\n]+/g, ' ').trim();
+  return trimmedContent.length > 0 && chatStore.getSelectedChat !== null;
 });
 
 const isDisabled = computed(() => {
@@ -25,7 +26,7 @@ const hasReference = computed(() => {
 const sendMessage = () => {
   if (!canSend.value) return;
 
-  const content = inputContent.value.trim();
+  const content = inputContent.value.replace(/[\s\r\n]+/g, ' ').trim();
   messageStore.sendMessage(content);
   
   if (messageStore.currentChat) {
@@ -41,6 +42,7 @@ const handleKeydown = (e: KeyboardEvent) => {
     e.preventDefault();
     sendMessage();
   }
+  // Shift+Enter 使用 textarea 默认换行行为
 };
 
 const focusInput = () => {

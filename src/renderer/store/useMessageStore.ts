@@ -135,6 +135,8 @@ export const useMessageStore = defineStore('message', () => {
         };
     },
     {
-        persist: true,
+        persist: {
+            paths: ['data', 'currentChat']
+        },
     }
 )

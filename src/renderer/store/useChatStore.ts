@@ -68,6 +68,20 @@ const sortChats = (chats: ModelChat[]): ModelChat[] => {
 export const useChatStore = defineStore('chat', () => {
     let data: Ref<ModelChat[]> = ref(prepareData())
     const searchKeyword = ref('')
+    const isInitialized = ref(false)
+
+    const initializeStore = () => {
+        if (isInitialized.value) return;
+        
+        const selectedChat = data.value.find(item => item.isSelected);
+        if (selectedChat) {
+            const messageStore = useMessageStore();
+            if (!messageStore.currentChat || messageStore.currentChat.id !== selectedChat.id) {
+                messageStore.initData(selectedChat);
+            }
+        }
+        isInitialized.value = true;
+    };
 
     const setSearchKeyword = (keyword: string) => {
         const maxLength = 50;
@@ -103,12 +117,15 @@ export const useChatStore = defineStore('chat', () => {
     });
 
     let selectItem = (item: ModelChat) => {
-        if (item.isSelected) return;
-        data.value.forEach(i => i.isSelected = false)
-        item.isSelected = true
-        item.unreadCount = 0;
-        const messageStore = useMessageStore()
-        messageStore.initData(item)
+        const targetChat = data.value.find(i => i.id === item.id);
+        if (!targetChat || targetChat.isSelected) return;
+        
+        data.value.forEach(i => i.isSelected = false);
+        targetChat.isSelected = true;
+        targetChat.unreadCount = 0;
+        
+        const messageStore = useMessageStore();
+        messageStore.initData(targetChat);
     }
 
     const getSelectedChat = computed(() => {
@@ -188,6 +205,11 @@ export const useChatStore = defineStore('chat', () => {
         clearUnread,
         markAllAsRead,
         totalUnreadCount,
-        hasUnread
+        hasUnread,
+        initializeStore
     }
+}, {
+    persist: {
+        paths: ['data', 'searchKeyword']
+    },
 })
