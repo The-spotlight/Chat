@@ -30,6 +30,7 @@ export const useMessageStore = defineStore('message', () => {
         let referencedMessage = ref<ModelMessage | null>(null);
         let highlightedMessageId = ref<string | null>(null);
         let pendingUnreadCount = ref(0);
+        let skipNextScrollToBottom = ref(false);
         
         let msg1 = `醉里挑灯看剑，梦回吹角连营。八百里分麾下灸，五十弦翻塞外声。沙场秋点兵。马作的卢飞快，弓如霹雳弦惊。了却君王天下事，嬴得生前身后名。可怜白发生`;
         let msg2 = `怒发冲冠，凭栏处，潇潇雨歇。抬望眼，仰天长啸，壮怀激烈。 三十功名尘与土，八千里路云和月。莫等闲，白了少年头，空悲切！ 靖康耻，犹未雪；臣子恨，何时灭?驾长车，踏破贺兰山缺！ 壮志饥餐胡虏肉，笑谈渴饮匈奴血。待从头，收拾旧山河，朝天阙！`;
@@ -38,6 +39,7 @@ export const useMessageStore = defineStore('message', () => {
             currentChat.value = chat;
             referencedMessage.value = null;
             pendingUnreadCount.value = chat.unreadCount || 0;
+            skipNextScrollToBottom.value = (chat.unreadCount || 0) > 0;
             let result = [];
             for (let i = 0; i < 10; i++) {
                 let model = new ModelMessage();
@@ -54,6 +56,12 @@ export const useMessageStore = defineStore('message', () => {
             data.value = result;
         };
 
+        let consumeSkipScrollFlag = () => {
+            const shouldSkip = skipNextScrollToBottom.value;
+            skipNextScrollToBottom.value = false;
+            return shouldSkip;
+        };
+
         let setReferencedMessage = (message: ModelMessage | null) => {
             referencedMessage.value = message;
         };
@@ -62,15 +70,9 @@ export const useMessageStore = defineStore('message', () => {
             referencedMessage.value = null;
         };
 
-        let truncateContent = (content: string, maxLength: number): string => {
-            if (!content) return '';
-            if (content.length <= maxLength) return content;
-            return content.slice(0, maxLength) + '...';
-        };
-
         let sendMessage = (content: string) => {
             if (!currentChat.value) return;
-            
+
             let model = new ModelMessage();
             model.createTime = Date.now();
             model.isInMsg = false;
@@ -80,17 +82,17 @@ export const useMessageStore = defineStore('message', () => {
             model.chatId = currentChat.value.id;
             model.isEdited = false;
             model.isRecalled = false;
-            
+
             if (referencedMessage.value) {
                 const refMsg = referencedMessage.value;
                 model.reference = {
-                    referencedMessageId: refMsg.id || '',
-                    referencedFromName: refMsg.fromName || '未知发送者',
+                    referencedMessageId: refMsg.id,
+                    referencedFromName: refMsg.fromName?.trim() || '未知用户',
                     referencedContent: truncateContent(refMsg.messageContent || '', 50) || '空消息'
                 };
                 referencedMessage.value = null;
             }
-            
+
             data.value.push(model);
         };
 
@@ -101,27 +103,20 @@ export const useMessageStore = defineStore('message', () => {
         let recallMessage = (messageId: string) => {
             const message = data.value.find(m => m.id === messageId);
             if (!message || !canOperateMessage(message)) return false;
-            
-            data.value = data.value.map(msg => {
-                if (msg.id === messageId) {
-                    return {
-                        ...msg,
-                        isRecalled: true,
-                        messageContent: ''
-                    };
-                }
+
+            message.isRecalled = true;
+            message.messageContent = '';
+
+            data.value.forEach(msg => {
                 if (msg.reference && msg.reference.referencedMessageId === messageId) {
-                    return {
-                        ...msg,
-                        reference: {
-                            ...msg.reference,
-                            referencedContent: '消息已被撤回'
-                        }
+                    msg.reference = {
+                        ...msg.reference,
+                        referencedFromName: '',
+                        referencedContent: '消息已被撤回'
                     };
                 }
-                return msg;
             });
-            
+
             return true;
         };
 
@@ -149,9 +144,9 @@ export const useMessageStore = defineStore('message', () => {
         });
 
         return {
-            data, 
-            initData, 
-            sendMessage, 
+            data,
+            initData,
+            sendMessage,
             currentChat,
             referencedMessage,
             setReferencedMessage,
@@ -163,7 +158,9 @@ export const useMessageStore = defineStore('message', () => {
             getMessageById,
             pendingUnreadCount,
             clearPendingUnread,
-            hasPendingUnread
+            hasPendingUnread,
+            skipNextScrollToBottom,
+            consumeSkipScrollFlag
         };
     }
 )
