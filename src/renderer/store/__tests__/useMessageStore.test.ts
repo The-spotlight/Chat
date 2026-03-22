@@ -210,4 +210,121 @@ describe('useMessageStore', () => {
       expect(result.endsWith('...')).toBe(true)
     })
   })
+
+  describe('Regression Tests', () => {
+    describe('Bug #2: Reference card shows empty after sending quoted message', () => {
+      it('should correctly set reference content using the imported truncateContent utility', () => {
+        const store = useMessageStore()
+        const chat = new ModelChat()
+        chat.id = 'test-chat-id'
+        chat.fromName = 'Test User'
+        chat.avatar = 'test-avatar.png'
+
+        store.initData(chat)
+
+        const referencedMsg = new ModelMessage()
+        referencedMsg.id = 'ref-msg-id'
+        referencedMsg.fromName = 'Original Sender'
+        referencedMsg.messageContent = 'This is the original message to be referenced'
+
+        store.setReferencedMessage(referencedMsg)
+        store.sendMessage('This is a reply with reference')
+
+        const newMessage = store.data[store.data.length - 1]
+        expect(newMessage.reference).toBeDefined()
+        expect(newMessage.reference?.referencedMessageId).toBe('ref-msg-id')
+        expect(newMessage.reference?.referencedFromName).toBe('Original Sender')
+        expect(newMessage.reference?.referencedContent).toContain('This is the original message to be referenced')
+      })
+
+      it('should handle reference with empty content', () => {
+        const store = useMessageStore()
+        const chat = new ModelChat()
+        chat.id = 'test-chat-id'
+        chat.fromName = 'Test User'
+        chat.avatar = 'test-avatar.png'
+
+        store.initData(chat)
+
+        const referencedMsg = new ModelMessage()
+        referencedMsg.id = 'ref-msg-id'
+        referencedMsg.fromName = 'Original Sender'
+        referencedMsg.messageContent = ''
+
+        store.setReferencedMessage(referencedMsg)
+        store.sendMessage('Reply to empty message')
+
+        const newMessage = store.data[store.data.length - 1]
+        expect(newMessage.reference).toBeDefined()
+        expect(newMessage.reference?.referencedContent).toBe('')
+      })
+
+      it('should handle reference with null content', () => {
+        const store = useMessageStore()
+        const chat = new ModelChat()
+        chat.id = 'test-chat-id'
+        chat.fromName = 'Test User'
+        chat.avatar = 'test-avatar.png'
+
+        store.initData(chat)
+
+        const referencedMsg = new ModelMessage()
+        referencedMsg.id = 'ref-msg-id'
+        referencedMsg.fromName = 'Original Sender'
+        referencedMsg.messageContent = undefined
+
+        store.setReferencedMessage(referencedMsg)
+        store.sendMessage('Reply to message with null content')
+
+        const newMessage = store.data[store.data.length - 1]
+        expect(newMessage.reference).toBeDefined()
+        expect(newMessage.reference?.referencedContent).toBe('')
+      })
+
+      it('should truncate content longer than 50 characters', () => {
+        const store = useMessageStore()
+        const chat = new ModelChat()
+        chat.id = 'test-chat-id'
+        chat.fromName = 'Test User'
+        chat.avatar = 'test-avatar.png'
+
+        store.initData(chat)
+
+        const longContent = 'This is a very long message content that definitely exceeds the fifty character limit that we have set for the reference preview'
+        const referencedMsg = new ModelMessage()
+        referencedMsg.id = 'ref-msg-id'
+        referencedMsg.fromName = 'Original Sender'
+        referencedMsg.messageContent = longContent
+
+        store.setReferencedMessage(referencedMsg)
+        store.sendMessage('Reply with long reference')
+
+        const newMessage = store.data[store.data.length - 1]
+        expect(newMessage.reference?.referencedContent.length).toBeLessThanOrEqual(53)
+        expect(newMessage.reference?.referencedContent.endsWith('...')).toBe(true)
+      })
+
+      it('should handle reference with special characters and emojis', () => {
+        const store = useMessageStore()
+        const chat = new ModelChat()
+        chat.id = 'test-chat-id'
+        chat.fromName = 'Test User'
+        chat.avatar = 'test-avatar.png'
+
+        store.initData(chat)
+
+        const referencedMsg = new ModelMessage()
+        referencedMsg.id = 'ref-msg-id'
+        referencedMsg.fromName = '🎉 Special User 🌟'
+        referencedMsg.messageContent = 'Hello! @#$%^&*() 中文测试 🎉 emoji'
+
+        store.setReferencedMessage(referencedMsg)
+        store.sendMessage('Reply with special chars')
+
+        const newMessage = store.data[store.data.length - 1]
+        expect(newMessage.reference?.referencedFromName).toBe('🎉 Special User 🌟')
+        expect(newMessage.reference?.referencedContent).toContain('Hello! @#$%^&*() 中文测试 🎉 emoji')
+      })
+    })
+  })
 })
