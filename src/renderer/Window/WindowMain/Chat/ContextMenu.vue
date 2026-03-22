@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, watch, computed, nextTick } from "vue";
 
 export interface ContextMenuItem {
   id: string;
@@ -22,6 +22,13 @@ const emit = defineEmits<{
 }>();
 
 const menuRef = ref<HTMLDivElement | null>(null);
+const menuHeight = ref(0);
+const menuWidth = ref(0);
+
+const MENU_MARGIN = 10;
+const ESTIMATED_ITEM_HEIGHT = 36;
+const ESTIMATED_DIVIDER_HEIGHT = 9;
+const ESTIMATED_MENU_PADDING = 12;
 
 const handleClickOutside = (event: MouseEvent) => {
   if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
@@ -41,16 +48,105 @@ const handleItemClick = (item: ContextMenuItem) => {
   emit('close');
 };
 
-const visibleItems = ref<ContextMenuItem[]>([]);
+const estimateMenuDimensions = (): { width: number; height: number } => {
+  let height = ESTIMATED_MENU_PADDING;
+  let width = 120;
+  
+  props.items.forEach(item => {
+    if (item.show !== false) {
+      if (item.divider) {
+        height += ESTIMATED_DIVIDER_HEIGHT;
+      } else {
+        height += ESTIMATED_ITEM_HEIGHT;
+      }
+      const textLength = item.label.length * 12 + (item.icon ? 28 : 8) + 32;
+      if (textLength > width) {
+        width = textLength;
+      }
+    }
+  });
+  
+  return { width, height };
+};
+
+const updateMenuDimensions = () => {
+  if (menuRef.value) {
+    const actualHeight = menuRef.value.offsetHeight;
+    const actualWidth = menuRef.value.offsetWidth;
+    
+    if (actualHeight > 0) {
+      menuHeight.value = actualHeight;
+    } else {
+      const estimated = estimateMenuDimensions();
+      menuHeight.value = estimated.height;
+    }
+    
+    if (actualWidth > 0) {
+      menuWidth.value = actualWidth;
+    } else {
+      const estimated = estimateMenuDimensions();
+      menuWidth.value = estimated.width;
+    }
+  } else {
+    const estimated = estimateMenuDimensions();
+    menuHeight.value = estimated.height;
+    menuWidth.value = estimated.width;
+  }
+};
+
+const adjustedPosition = computed(() => {
+  let adjustedX = props.x;
+  let adjustedY = props.y;
+  
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  
+  const currentMenuWidth = menuWidth.value || estimateMenuDimensions().width;
+  const currentMenuHeight = menuHeight.value || estimateMenuDimensions().height;
+  
+  if (adjustedX + currentMenuWidth + MENU_MARGIN > viewportWidth) {
+    adjustedX = viewportWidth - currentMenuWidth - MENU_MARGIN;
+  }
+  
+  if (adjustedX < MENU_MARGIN) {
+    adjustedX = MENU_MARGIN;
+  }
+  
+  if (adjustedY + currentMenuHeight + MENU_MARGIN > viewportHeight) {
+    adjustedY = props.y - currentMenuHeight;
+    if (adjustedY < MENU_MARGIN) {
+      adjustedY = MENU_MARGIN;
+    }
+  }
+  
+  return {
+    x: adjustedX,
+    y: adjustedY
+  };
+});
+
+watch(
+  () => props.visible,
+  async (newVisible) => {
+    if (newVisible) {
+      updateMenuDimensions();
+      await nextTick();
+      updateMenuDimensions();
+    }
+  },
+  { immediate: true }
+);
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
   document.addEventListener('keydown', handleEscape);
+  window.addEventListener('resize', updateMenuDimensions);
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
   document.removeEventListener('keydown', handleEscape);
+  window.removeEventListener('resize', updateMenuDimensions);
 });
 </script>
 
@@ -60,7 +156,7 @@ onUnmounted(() => {
       v-if="visible && items.length > 0"
       ref="menuRef"
       class="context-menu"
-      :style="{ left: x + 'px', top: y + 'px' }"
+      :style="{ left: adjustedPosition.x + 'px', top: adjustedPosition.y + 'px' }"
     >
       <template v-for="item in items" :key="item.id">
         <div 
