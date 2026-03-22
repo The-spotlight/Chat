@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch, nextTick, ref, computed } from "vue";
+import { watch, nextTick, ref, computed, onMounted } from "vue";
 import BarTop from "../../../Components/BarTop.vue";
 import { useMessageStore } from "../../../store/useMessageStore";
 import { useChatStore } from "../../../store/useChatStore";
@@ -10,6 +10,10 @@ const messageStore = useMessageStore();
 const chatStore = useChatStore();
 const messageListRef = ref<HTMLDivElement | null>(null);
 const messageItemRefs = ref<Map<string, HTMLElement>>(new Map());
+
+onMounted(() => {
+  chatStore.initializeMessageStore();
+});
 
 const setMessageItemRef = (id: string, el: any) => {
   if (el) {

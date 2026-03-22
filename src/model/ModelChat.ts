@@ -1,6 +1,7 @@
 import {ModelBase} from "./ModelBase";
 
 export class ModelChat extends ModelBase {
+    declare id: string;
     fromName?: string;
     sendTime?: number | string;
     isSelected = false;

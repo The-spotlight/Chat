@@ -4,6 +4,26 @@ import {ref, computed} from "vue";
 import {ModelMessage, MessageReference} from "../../model/ModelMessage";
 import { canOperateMessage, isWithinTimeLimit, truncateContent } from '../utils/messageUtils';
 
+/**
+ * Message Store - 消息状态管理
+ * 
+ * 设计说明：此 store 不使用持久化配置（persist），原因如下：
+ * 
+ * 1. Mock 数据场景：initData() 方法会生成模拟消息数据，每次切换会话都会重新生成，
+ *    如果启用持久化，会导致持久化数据与新生成的数据冲突。
+ * 
+ * 2. 数据一致性：useChatStore 已启用持久化，会保存会话列表状态（包括选中的会话），
+ *    页面刷新后，initializeMessageStore() 会根据选中的会话重新初始化消息数据，
+ *    确保 chatStore 和 messageStore 状态一致。
+ * 
+ * 3. 未来扩展：如需持久化用户发送的真实消息，建议：
+ *    - 按会话 ID 分别存储消息（如使用 IndexedDB 或 localStorage key: `messages_${chatId}`）
+ *    - 在 initData() 中先加载持久化消息，再追加 mock 数据（如需要）
+ *    - 或完全移除 mock 数据，改为从后端 API 加载
+ * 
+ * @see useChatStore - 会话状态管理（已启用持久化）
+ * @see initializeMessageStore - 初始化消息数据的方法
+ */
 export const useMessageStore = defineStore('message', () => {
         let data = ref<ModelMessage[]>([]);
         let currentChat = ref<ModelChat | null>(null);
@@ -133,8 +153,5 @@ export const useMessageStore = defineStore('message', () => {
             clearPendingUnread,
             hasPendingUnread
         };
-    },
-    {
-        persist: true,
     }
 )

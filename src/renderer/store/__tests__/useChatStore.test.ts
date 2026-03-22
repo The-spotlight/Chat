@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useChatStore } from '../useChatStore'
 import { useMessageStore } from '../useMessageStore'
@@ -103,6 +103,120 @@ describe('useChatStore', () => {
     expect(store.searchStats.total).toBe(10)
     expect(store.searchStats.filtered).toBeGreaterThan(0)
     expect(store.searchStats.isSearching).toBe(true)
+  })
+
+  describe('selectItem with search integration', () => {
+    it('should clear search keyword when selecting a chat', () => {
+      const store = useChatStore()
+      
+      store.setSearchKeyword('聊天对象1')
+      expect(store.searchKeyword).toBe('聊天对象1')
+      
+      const chatToSelect = store.data[0]
+      store.selectItem(chatToSelect)
+      
+      expect(store.searchKeyword).toBe('')
+    })
+
+    it('should initialize message store when selecting a chat', () => {
+      const store = useChatStore()
+      const messageStore = useMessageStore()
+      
+      const chatToSelect = store.data[0]
+      store.selectItem(chatToSelect)
+      
+      expect(messageStore.currentChat).toEqual(chatToSelect)
+      expect(messageStore.data.length).toBe(10)
+    })
+
+    it('should not re-select already selected chat', () => {
+      const store = useChatStore()
+      const messageStore = useMessageStore()
+      
+      const selectedChat = store.getSelectedChat
+      expect(selectedChat).not.toBeNull()
+      
+      messageStore.sendMessage('test message')
+      const messageCountBefore = messageStore.data.length
+      
+      store.selectItem(selectedChat!)
+      
+      expect(messageStore.data.length).toBe(messageCountBefore)
+    })
+
+    it('should preserve search keyword when clearSearch option is false', () => {
+      const store = useChatStore()
+      
+      store.setSearchKeyword('聊天对象1')
+      expect(store.searchKeyword).toBe('聊天对象1')
+      
+      const chatToSelect = store.data[0]
+      store.selectItem(chatToSelect, { clearSearch: false })
+      
+      expect(store.searchKeyword).toBe('聊天对象1')
+    })
+
+    it('should clear search keyword when clearSearch option is true', () => {
+      const store = useChatStore()
+      
+      store.setSearchKeyword('聊天对象1')
+      
+      const chatToSelect = store.data[0]
+      store.selectItem(chatToSelect, { clearSearch: true })
+      
+      expect(store.searchKeyword).toBe('')
+    })
+
+    it('should clear search keyword by default when no options provided', () => {
+      const store = useChatStore()
+      
+      store.setSearchKeyword('聊天对象1')
+      
+      const chatToSelect = store.data[0]
+      store.selectItem(chatToSelect)
+      
+      expect(store.searchKeyword).toBe('')
+    })
+  })
+
+  describe('initializeMessageStore', () => {
+    it('should initialize message store for selected chat', () => {
+      const store = useChatStore()
+      const messageStore = useMessageStore()
+      
+      expect(store.isInitialized).toBe(false)
+      expect(messageStore.currentChat).toBeNull()
+      
+      store.initializeMessageStore()
+      
+      expect(store.isInitialized).toBe(true)
+      expect(messageStore.currentChat).not.toBeNull()
+      expect(messageStore.currentChat?.isSelected).toBe(true)
+    })
+
+    it('should not re-initialize if already initialized', () => {
+      const store = useChatStore()
+      const messageStore = useMessageStore()
+      
+      store.initializeMessageStore()
+      const firstChat = messageStore.currentChat
+      
+      store.initializeMessageStore()
+      
+      expect(messageStore.currentChat).toEqual(firstChat)
+    })
+
+    it('should handle case when no chat is selected', () => {
+      const store = useChatStore()
+      const messageStore = useMessageStore()
+      
+      store.data.forEach(chat => chat.isSelected = false)
+      
+      store.initializeMessageStore()
+      
+      expect(store.isInitialized).toBe(true)
+      expect(messageStore.currentChat).toBeNull()
+    })
   })
 
   describe('Pin functionality', () => {
@@ -254,4 +368,3 @@ describe('useChatStore', () => {
   })
 })
 
-import { afterEach } from 'vitest'
