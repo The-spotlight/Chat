@@ -199,4 +199,109 @@ describe('ContextMenu', () => {
     const menuItem = document.querySelector('.menu-item')
     expect(menuItem?.classList.contains('menu-item')).toBe(true)
   })
+
+  describe('Bug #3: Context menu edge detection', () => {
+    it('should adjust position when menu would go beyond right edge', async () => {
+      const wrapper = mount(ContextMenu, {
+        props: {
+          visible: true,
+          x: window.innerWidth - 50,
+          y: 100,
+          items: testItems
+        },
+        attachTo: document.body
+      })
+
+      await wrapper.vm.$nextTick()
+      
+      const menu = document.querySelector('.context-menu') as HTMLElement
+      expect(menu).not.toBeNull()
+      
+      const menuLeft = parseInt(menu.style.left)
+      expect(menuLeft).toBeLessThan(window.innerWidth - 100)
+    })
+
+    it('should adjust position when menu would go beyond bottom edge', async () => {
+      const wrapper = mount(ContextMenu, {
+        props: {
+          visible: true,
+          x: 100,
+          y: window.innerHeight - 50,
+          items: testItems
+        },
+        attachTo: document.body
+      })
+
+      await wrapper.vm.$nextTick()
+      
+      const menu = document.querySelector('.context-menu') as HTMLElement
+      expect(menu).not.toBeNull()
+      
+      const menuTop = parseInt(menu.style.top)
+      expect(menuTop).toBeLessThan(window.innerHeight - 100)
+    })
+
+    it('should not go beyond left edge', async () => {
+      const wrapper = mount(ContextMenu, {
+        props: {
+          visible: true,
+          x: -50,
+          y: 100,
+          items: testItems
+        },
+        attachTo: document.body
+      })
+
+      await wrapper.vm.$nextTick()
+      
+      const menu = document.querySelector('.context-menu') as HTMLElement
+      expect(menu).not.toBeNull()
+      
+      const menuLeft = parseInt(menu.style.left)
+      expect(menuLeft).toBeGreaterThanOrEqual(10)
+    })
+
+    it('should not go beyond top edge when flipping upwards', async () => {
+      const wrapper = mount(ContextMenu, {
+        props: {
+          visible: true,
+          x: 100,
+          y: 30,
+          items: [...testItems, ...testItems, ...testItems]
+        },
+        attachTo: document.body
+      })
+
+      await wrapper.vm.$nextTick()
+      
+      const menu = document.querySelector('.context-menu') as HTMLElement
+      expect(menu).not.toBeNull()
+      
+      const menuTop = parseInt(menu.style.top)
+      expect(menuTop).toBeGreaterThanOrEqual(10)
+    })
+
+    it('should position menu correctly when near bottom-right corner', async () => {
+      const wrapper = mount(ContextMenu, {
+        props: {
+          visible: true,
+          x: window.innerWidth - 50,
+          y: window.innerHeight - 50,
+          items: testItems
+        },
+        attachTo: document.body
+      })
+
+      await wrapper.vm.$nextTick()
+      
+      const menu = document.querySelector('.context-menu') as HTMLElement
+      expect(menu).not.toBeNull()
+      
+      const menuLeft = parseInt(menu.style.left)
+      const menuTop = parseInt(menu.style.top)
+      
+      expect(menuLeft).toBeLessThan(window.innerWidth - 100)
+      expect(menuTop).toBeLessThan(window.innerHeight - 100)
+    })
+  })
 })

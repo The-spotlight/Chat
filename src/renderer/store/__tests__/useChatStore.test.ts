@@ -366,5 +366,100 @@ describe('useChatStore', () => {
       expect(store.hasUnread).toBe(true)
     })
   })
+
+  describe('Regression Tests', () => {
+    describe('Bug #1: Scroll to first unread message when switching chats', () => {
+      it('should pass unreadCount to messageStore when selecting a chat', () => {
+        const store = useChatStore()
+        const messageStore = useMessageStore()
+        
+        const chat = store.data[0]
+        chat.unreadCount = 5
+        
+        store.selectItem(chat)
+        
+        expect(messageStore.pendingUnreadCount).toBe(5)
+      })
+
+      it('should handle zero unreadCount correctly', () => {
+        const store = useChatStore()
+        const messageStore = useMessageStore()
+        
+        const chat = store.data[1]
+        chat.unreadCount = 0
+        
+        store.selectItem(chat)
+        
+        expect(messageStore.pendingUnreadCount).toBe(0)
+      })
+
+      it('should clear unreadCount after selecting chat', () => {
+        const store = useChatStore()
+        
+        const chat = store.data[0]
+        chat.unreadCount = 5
+        
+        store.selectItem(chat)
+        
+        expect(chat.unreadCount).toBe(0)
+      })
+    })
+
+    describe('Bug #2: Search with special characters', () => {
+      it('should match chat names containing dots', () => {
+        const store = useChatStore()
+        
+        store.data[0].fromName = 'v2.0项目组'
+        
+        store.setSearchKeyword('v2.0')
+        
+        expect(store.filteredData.length).toBeGreaterThan(0)
+        expect(store.filteredData[0].fromName).toBe('v2.0项目组')
+      })
+
+      it('should match chat names containing parentheses', () => {
+        const store = useChatStore()
+        
+        store.data[0].fromName = '项目(测试)组'
+        
+        store.setSearchKeyword('(测试)')
+        
+        expect(store.filteredData.length).toBeGreaterThan(0)
+        expect(store.filteredData[0].fromName).toBe('项目(测试)组')
+      })
+
+      it('should match chat names containing plus signs', () => {
+        const store = useChatStore()
+        
+        store.data[0].fromName = 'C++开发组'
+        
+        store.setSearchKeyword('C++')
+        
+        expect(store.filteredData.length).toBeGreaterThan(0)
+        expect(store.filteredData[0].fromName).toBe('C++开发组')
+      })
+
+      it('should match chat names containing special regex characters', () => {
+        const store = useChatStore()
+        
+        store.data[0].fromName = '项目*测试$组'
+        
+        store.setSearchKeyword('*测试$')
+        
+        expect(store.filteredData.length).toBeGreaterThan(0)
+        expect(store.filteredData[0].fromName).toBe('项目*测试$组')
+      })
+
+      it('should return empty results when no match found', () => {
+        const store = useChatStore()
+        
+        store.data[0].fromName = '正常名称'
+        
+        store.setSearchKeyword('不存在的关键词')
+        
+        expect(store.filteredData.length).toBe(0)
+      })
+    })
+  })
 })
 

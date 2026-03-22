@@ -10,6 +10,8 @@ const messageStore = useMessageStore();
 const chatStore = useChatStore();
 const messageListRef = ref<HTMLDivElement | null>(null);
 const messageItemRefs = ref<Map<string, HTMLElement>>(new Map());
+const isSwitchingChat = ref(false);
+const previousChatId = ref<string | null>(null);
 
 onMounted(() => {
   chatStore.initializeMessageStore();
@@ -37,6 +39,14 @@ const scrollToMessage = async (messageId: string) => {
   }
 };
 
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (messageListRef.value) {
+      messageListRef.value.scrollTop = messageListRef.value.scrollHeight;
+    }
+  });
+};
+
 const scrollToFirstUnread = async () => {
   if (!messageStore.hasPendingUnread) return;
   
@@ -61,22 +71,31 @@ const showUnreadBanner = computed(() => {
 watch(
   () => messageStore.data.length,
   () => {
-    nextTick(() => {
-      if (messageListRef.value) {
-        messageListRef.value.scrollTop = messageListRef.value.scrollHeight;
-      }
-    });
+    if (!isSwitchingChat.value) {
+      scrollToBottom();
+    }
   },
   { immediate: true }
 );
 
 watch(
   () => chatStore.getSelectedChat,
-  (newChat) => {
-    if (newChat && newChat.unreadCount && newChat.unreadCount > 0) {
-      nextTick(() => {
-        scrollToFirstUnread();
-      });
+  async (newChat) => {
+    if (newChat && newChat.id !== previousChatId.value) {
+      isSwitchingChat.value = true;
+      previousChatId.value = newChat.id || null;
+      
+      await nextTick();
+      
+      if (messageStore.hasPendingUnread) {
+        await scrollToFirstUnread();
+      } else {
+        scrollToBottom();
+      }
+      
+      setTimeout(() => {
+        isSwitchingChat.value = false;
+      }, 100);
     }
   },
   { immediate: true }
