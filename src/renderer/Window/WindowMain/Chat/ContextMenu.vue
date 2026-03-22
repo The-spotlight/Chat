@@ -1,14 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
 
+export interface MenuItem {
+  key: string;
+  label: string;
+  icon?: string;
+  visible?: boolean;
+}
+
 const props = defineProps<{
   visible: boolean;
   x: number;
   y: number;
+  items: MenuItem[];
 }>();
 
 const emit = defineEmits<{
-  (e: 'select'): void;
+  (e: 'select', key: string): void;
   (e: 'close'): void;
 }>();
 
@@ -26,8 +34,8 @@ const handleEscape = (event: KeyboardEvent) => {
   }
 };
 
-const handleSelect = () => {
-  emit('select');
+const handleSelect = (key: string) => {
+  emit('select', key);
   emit('close');
 };
 
@@ -50,10 +58,16 @@ onUnmounted(() => {
       class="context-menu"
       :style="{ left: x + 'px', top: y + 'px' }"
     >
-      <div class="menu-item" @click="handleSelect">
-        <span class="menu-icon">↩</span>
-        <span>引用</span>
-      </div>
+      <template v-for="item in items" :key="item.key">
+        <div
+          v-if="item.visible !== false"
+          class="menu-item"
+          @click="handleSelect(item.key)"
+        >
+          <span v-if="item.icon" class="menu-icon">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+        </div>
+      </template>
     </div>
   </Teleport>
 </template>
