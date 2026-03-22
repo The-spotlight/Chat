@@ -21,6 +21,7 @@ describe('MessageItem', () => {
     message.messageContent = content
     message.fromName = isInMsg ? 'Sender' : '我'
     message.avatar = 'test-avatar.png'
+    message.createTime = Date.now()
     return message
   }
 
@@ -92,6 +93,26 @@ describe('MessageItem', () => {
 
     const referenceName = wrapper.find('.reference-name')
     expect(referenceName.exists()).toBe(true)
+  })
+
+  it('should not display reference sender name when referencedFromName is empty (recalled message)', () => {
+    const message = createMessage(true)
+    message.reference = {
+      referencedMessageId: 'ref-id',
+      referencedFromName: '',
+      referencedContent: '消息已被撤回'
+    }
+    
+    const wrapper = mount(MessageItem, {
+      props: { data: message }
+    })
+
+    const referenceName = wrapper.find('.reference-name')
+    expect(referenceName.exists()).toBe(false)
+    
+    const referenceText = wrapper.find('.reference-text')
+    expect(referenceText.exists()).toBe(true)
+    expect(referenceText.text()).toBe('消息已被撤回')
   })
 
   it('should have green left border on reference card', () => {
@@ -194,5 +215,105 @@ describe('MessageItem', () => {
 
     const referenceText = wrapper.find('.reference-text').text()
     expect(referenceText).toBe('This is a very long reference content that should be truncated at 50 characters...')
+  })
+
+  describe('Bug #1: Edit message with Enter key should not add extra newline', () => {
+    it('should save edit without adding newline when Enter is pressed', async () => {
+      const message = createMessage(false, 'Original message')
+      const messageStore = useMessageStore()
+      const editSpy = vi.spyOn(messageStore, 'editMessage')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      expect(textarea.exists()).toBe(true)
+      
+      await textarea.setValue('Edited content')
+      await textarea.trigger('keydown.enter', { key: 'Enter' })
+      await wrapper.vm.$nextTick()
+
+      expect(editSpy).toHaveBeenCalledWith(message.id, 'Edited content')
+      expect(editSpy).not.toHaveBeenCalledWith(message.id, expect.stringContaining('\n'))
+    })
+
+    it('should prevent default Enter behavior in edit textarea', async () => {
+      const message = createMessage(false, 'Original message')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      expect(textarea.exists()).toBe(true)
+      await textarea.setValue('Test content')
+      
+      const event = new KeyboardEvent('keydown', { 
+        key: 'Enter', 
+        bubbles: true,
+        cancelable: true
+      })
+      const preventDefaultSpy = vi.spyOn(event, 'preventDefault')
+      
+      textarea.element.dispatchEvent(event)
+      
+      expect(preventDefaultSpy).toHaveBeenCalled()
+    })
+  })
+
+  describe('Bug #2: Escape key should cancel edit when using IME', () => {
+    it('should cancel edit when Escape key is pressed on keydown', async () => {
+      const message = createMessage(false, 'Original message')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      expect(textarea.exists()).toBe(true)
+      
+      await textarea.setValue('Modified content')
+      await textarea.trigger('keydown.esc', { key: 'Escape' })
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('textarea').exists()).toBe(false)
+      expect(wrapper.find('.message-text').text()).toBe('Original message')
+    })
+
+    it('should respond to Escape key on keydown event (not keyup)', async () => {
+      const message = createMessage(false, 'Test message')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      expect(textarea.exists()).toBe(true)
+      
+      const keydownHandler = vi.fn()
+      textarea.element.addEventListener('keydown', keydownHandler)
+      
+      const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+      textarea.element.dispatchEvent(event)
+      
+      expect(keydownHandler).toHaveBeenCalled()
+    })
   })
 })
