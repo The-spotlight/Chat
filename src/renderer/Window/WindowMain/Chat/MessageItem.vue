@@ -145,7 +145,7 @@ const handleMouseLeave = () => {
           >
             <div class="reference-indicator"></div>
             <div class="reference-info">
-              <div class="reference-name">{{ data.reference.referencedFromName }}</div>
+              <div v-if="data.reference.referencedFromName" class="reference-name">{{ data.reference.referencedFromName }}</div>
               <div class="reference-text">{{ data.reference.referencedContent }}</div>
             </div>
           </div>
@@ -177,7 +177,7 @@ const handleMouseLeave = () => {
           >
             <div class="reference-indicator"></div>
             <div class="reference-info">
-              <div class="reference-name">{{ data.reference.referencedFromName }}</div>
+              <div v-if="data.reference.referencedFromName" class="reference-name">{{ data.reference.referencedFromName }}</div>
               <div class="reference-text">{{ data.reference.referencedContent }}</div>
             </div>
           </div>
@@ -188,8 +188,8 @@ const handleMouseLeave = () => {
               <textarea 
                 :class="['edit-input', 'edit-input-' + data.id]"
                 v-model="editContent"
-                @keyup.enter="saveEdit"
-                @keyup.esc="cancelEdit"
+                @keydown.enter.prevent="saveEdit"
+                @keydown.esc="cancelEdit"
                 rows="1"
               ></textarea>
               <div class="edit-actions">

@@ -274,4 +274,151 @@ describe('ContextMenu', () => {
       expect(menu.style.top).toBe('100px')
     })
   })
+
+  describe('Bug #3: Context menu should close when clicking outside', () => {
+    it('should emit close event when clicking outside the menu (mousedown)', async () => {
+      const wrapper = mount(ContextMenu, {
+        props: {
+          visible: true,
+          x: 100,
+          y: 100,
+          items: testItems
+        },
+        attachTo: document.body
+      })
+
+      await wrapper.vm.$nextTick()
+
+      const outsideElement = document.createElement('div')
+      outsideElement.style.position = 'fixed'
+      outsideElement.style.left = '0'
+      outsideElement.style.top = '0'
+      outsideElement.style.width = '50px'
+      outsideElement.style.height = '50px'
+      document.body.appendChild(outsideElement)
+
+      outsideElement.dispatchEvent(new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+        clientX: 25,
+        clientY: 25
+      }))
+
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('close')).toBeTruthy()
+      
+      document.body.removeChild(outsideElement)
+    })
+
+    it('should use mousedown event (not click) for outside click detection', async () => {
+      const wrapper = mount(ContextMenu, {
+        props: {
+          visible: true,
+          x: 100,
+          y: 100,
+          items: testItems
+        },
+        attachTo: document.body
+      })
+
+      await wrapper.vm.$nextTick()
+
+      const mousedownHandler = vi.fn()
+      document.addEventListener('mousedown', mousedownHandler, true)
+
+      document.body.dispatchEvent(new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true
+      }))
+
+      expect(mousedownHandler).toHaveBeenCalled()
+      
+      document.removeEventListener('mousedown', mousedownHandler, true)
+    })
+
+    it('should close menu when clicking on message bubble content', async () => {
+      const wrapper = mount(ContextMenu, {
+        props: {
+          visible: true,
+          x: 100,
+          y: 100,
+          items: testItems
+        },
+        attachTo: document.body
+      })
+
+      await wrapper.vm.$nextTick()
+
+      const messageBubble = document.createElement('div')
+      messageBubble.className = 'msgContent'
+      messageBubble.textContent = 'Test message content'
+      document.body.appendChild(messageBubble)
+
+      messageBubble.dispatchEvent(new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true
+      }))
+
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('close')).toBeTruthy()
+      
+      document.body.removeChild(messageBubble)
+    })
+
+    it('should use capture phase for event listener', async () => {
+      const wrapper = mount(ContextMenu, {
+        props: {
+          visible: true,
+          x: 100,
+          y: 100,
+          items: testItems
+        },
+        attachTo: document.body
+      })
+
+      await wrapper.vm.$nextTick()
+
+      const stopPropagationElement = document.createElement('div')
+      stopPropagationElement.addEventListener('mousedown', (e) => {
+        e.stopPropagation()
+      })
+      document.body.appendChild(stopPropagationElement)
+
+      stopPropagationElement.dispatchEvent(new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true
+      }))
+
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('close')).toBeTruthy()
+      
+      document.body.removeChild(stopPropagationElement)
+    })
+
+    it('should not emit close when menu is not visible', async () => {
+      const wrapper = mount(ContextMenu, {
+        props: {
+          visible: false,
+          x: 100,
+          y: 100,
+          items: testItems
+        },
+        attachTo: document.body
+      })
+
+      await wrapper.vm.$nextTick()
+
+      document.body.dispatchEvent(new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true
+      }))
+
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('close')).toBeFalsy()
+    })
+  })
 })

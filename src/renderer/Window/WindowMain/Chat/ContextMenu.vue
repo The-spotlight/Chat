@@ -47,13 +47,13 @@ const adjustedPosition = computed(() => {
 });
 
 const handleClickOutside = (event: MouseEvent) => {
-  if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
+  if (props.visible && menuRef.value && !menuRef.value.contains(event.target as Node)) {
     emit('close');
   }
 };
 
 const handleEscape = (event: KeyboardEvent) => {
-  if (event.key === 'Escape') {
+  if (event.key === 'Escape' && props.visible) {
     emit('close');
   }
 };
@@ -67,12 +67,12 @@ const handleItemClick = (item: ContextMenuItem) => {
 const visibleItems = ref<ContextMenuItem[]>([]);
 
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside);
+  document.addEventListener('mousedown', handleClickOutside, true);
   document.addEventListener('keydown', handleEscape);
 });
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener('mousedown', handleClickOutside, true);
   document.removeEventListener('keydown', handleEscape);
 });
 </script>
