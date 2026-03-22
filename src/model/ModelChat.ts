@@ -6,5 +6,9 @@ export class ModelChat extends ModelBase {
     isSelected = false;
     lastMsg?: string;
     avatar?: string;
-    chatType?: number; // 0：单聊， 2：公众号，3：文件传输助手
+    chatType?: number;
+    isPinned = false;
+    pinnedAt?: number;
+    unreadCount = 0;
+    lastMessageTime?: number;
 }

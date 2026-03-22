@@ -6,24 +6,40 @@ import {useMessageStore} from "./useMessageStore";
 
 let prepareData = () => {
     let result = [];
+    const unreadDistribution = [0, 0, 3, 0, 0, 1, 0, 12, 0, 2];
+    const sendTimes = ['刚刚', '5分钟前', '10分钟前', '半小时前', '昨天', '昨天', '前天', '3天前', '上周', '上周'];
+    const lastMessages = [
+        '好的，明天见！',
+        '这个方案我觉得可以',
+        '收到，我马上处理',
+        '周末有空一起吃饭吗？',
+        '文件已经发到你邮箱了',
+        '嗯嗯',
+        '那个问题解决了吗？',
+        '生日快乐！🎂',
+        '下周会议改到周三了',
+        '好久不见啊'
+    ];
+    
     for (let i = 0; i < 10; i++) {
         let model = new ModelChat();
         model.fromName = '聊天对象' + i;
-        model.sendTime = '昨天';
-        model.lastMsg = "这是此会话的最后一条消息" + i;
+        model.sendTime = sendTimes[i];
+        model.lastMsg = lastMessages[i];
         model.avatar = `https://pic3.zhimg.com/v2-306cd8f07a20cba46873209739c6395d_im.jpg?source=32738c0c`;
+        model.lastMessageTime = Date.now() - i * 3600000;
+        model.unreadCount = unreadDistribution[i];
         result.push(model);
     }
     result[4].isSelected = true;
+    result[4].unreadCount = 0;
     return result;
 }
 
-// 转义正则特殊字符
 const escapeRegExp = (str: string): string => {
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-// 安全的字符串包含检查
 const safeIncludes = (source: string | undefined | null, keyword: string): boolean => {
     if (source === undefined || source === null) {
         return false;
@@ -36,17 +52,28 @@ const safeIncludes = (source: string | undefined | null, keyword: string): boole
     }
 };
 
+const sortChats = (chats: ModelChat[]): ModelChat[] => {
+    return [...chats].sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        
+        if (a.isPinned && b.isPinned) {
+            return (b.pinnedAt || 0) - (a.pinnedAt || 0);
+        }
+        
+        return (b.lastMessageTime || 0) - (a.lastMessageTime || 0);
+    });
+};
+
 export const useChatStore = defineStore('chat', () => {
     let data: Ref<ModelChat[]> = ref(prepareData())
     const searchKeyword = ref('')
 
     const setSearchKeyword = (keyword: string) => {
-        // 限制最大搜索长度，防止性能问题
         const maxLength = 50;
         searchKeyword.value = keyword.slice(0, maxLength);
     }
 
-    // 搜索结果统计
     const searchStats = computed(() => {
         const total = data.value.length;
         const filtered = filteredData.value.length;
@@ -61,49 +88,90 @@ export const useChatStore = defineStore('chat', () => {
     const filteredData = computed(() => {
         const trimmedKeyword = searchKeyword.value.trim();
         
-        // 空搜索词，返回全部数据
-        if (!trimmedKeyword) {
-            return data.value;
+        let baseData = data.value;
+        
+        if (trimmedKeyword) {
+            const safeKeyword = escapeRegExp(trimmedKeyword);
+            baseData = data.value.filter(item => {
+                const nameMatch = safeIncludes(item.fromName, safeKeyword);
+                const lastMsgMatch = safeIncludes(item.lastMsg, safeKeyword);
+                return nameMatch || lastMsgMatch;
+            });
         }
 
-        // 转义搜索关键词中的正则特殊字符
-        const safeKeyword = escapeRegExp(trimmedKeyword);
-
-        return data.value.filter(item => {
-            // 搜索匹配：聊天对象名称 或 最后一条消息内容
-            const nameMatch = safeIncludes(item.fromName, safeKeyword);
-            const lastMsgMatch = safeIncludes(item.lastMsg, safeKeyword);
-            
-            return nameMatch || lastMsgMatch;
-        });
+        return sortChats(baseData);
     });
 
     let selectItem = (item: ModelChat) => {
         if (item.isSelected) return;
         data.value.forEach(i => i.isSelected = false)
         item.isSelected = true
+        item.unreadCount = 0;
         const messageStore = useMessageStore()
         messageStore.initData(item)
     }
 
-    // 获取当前选中的会话
     const getSelectedChat = computed(() => {
         return data.value.find(item => item.isSelected) || null;
     });
 
-    // 更新选中会话的最后一条消息和时间
     const updateLastMessage = (chatId: string, content: string) => {
         const chat = data.value.find(item => item.id === chatId);
         if (chat) {
             chat.lastMsg = content;
             chat.sendTime = '刚刚';
+            chat.lastMessageTime = Date.now();
         }
     };
 
-    // 清除搜索状态
     const clearSearch = () => {
         searchKeyword.value = '';
     };
+
+    const togglePin = (chatId: string) => {
+        const chat = data.value.find(item => item.id === chatId);
+        if (chat) {
+            chat.isPinned = !chat.isPinned;
+            if (chat.isPinned) {
+                chat.pinnedAt = Date.now();
+            } else {
+                chat.pinnedAt = undefined;
+            }
+        }
+    };
+
+    const incrementUnread = (chatId: string) => {
+        const selectedChat = getSelectedChat.value;
+        if (selectedChat && selectedChat.id === chatId) {
+            return;
+        }
+        
+        const chat = data.value.find(item => item.id === chatId);
+        if (chat) {
+            chat.unreadCount = (chat.unreadCount || 0) + 1;
+        }
+    };
+
+    const clearUnread = (chatId: string) => {
+        const chat = data.value.find(item => item.id === chatId);
+        if (chat) {
+            chat.unreadCount = 0;
+        }
+    };
+
+    const markAllAsRead = () => {
+        data.value.forEach(chat => {
+            chat.unreadCount = 0;
+        });
+    };
+
+    const totalUnreadCount = computed(() => {
+        return data.value.reduce((total, chat) => total + (chat.unreadCount || 0), 0);
+    });
+
+    const hasUnread = computed(() => {
+        return totalUnreadCount.value > 0;
+    });
 
     return {
         data,
@@ -114,8 +182,12 @@ export const useChatStore = defineStore('chat', () => {
         searchStats,
         clearSearch,
         getSelectedChat,
-        updateLastMessage
+        updateLastMessage,
+        togglePin,
+        incrementUnread,
+        clearUnread,
+        markAllAsRead,
+        totalUnreadCount,
+        hasUnread
     }
 })
-
-

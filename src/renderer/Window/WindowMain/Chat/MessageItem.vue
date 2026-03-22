@@ -108,6 +108,12 @@ const handleRecallAction = () => {
   messageStore.recallMessage(props.data.id);
 };
 
+const handleCopyAction = () => {
+  if (props.data.messageContent) {
+    navigator.clipboard.writeText(props.data.messageContent);
+  }
+};
+
 const handleMouseEnter = () => {
   if (!props.data.isRecalled && !props.data.isInMsg) {
     showActions.value = true;
@@ -219,7 +225,7 @@ const handleMouseLeave = () => {
                 <span class="dropdown-icon">↶</span>
                 <span>撤回</span>
               </div>
-              <div class="dropdown-item" @click="handleContextMenuCopy">
+              <div class="dropdown-item" @click="handleCopyAction">
                 <span class="dropdown-icon">📋</span>
                 <span>复制</span>
               </div>
