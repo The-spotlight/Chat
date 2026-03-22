@@ -316,4 +316,88 @@ describe('MessageItem', () => {
       expect(keydownHandler).toHaveBeenCalled()
     })
   })
+
+  describe('Bug #3: Incoming messages should show action buttons on hover', () => {
+    it('should show action buttons when hovering over incoming message', async () => {
+      const message = createMessage(true, 'Incoming message')
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      // 触发 mouseenter 事件
+      await wrapper.find('.messageItem.left').trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+
+      // 验证 showActions 被设置为 true
+      expect((wrapper.vm as any).showActions).toBe(true)
+    })
+
+    it('should hide action buttons when mouse leaves incoming message', async () => {
+      const message = createMessage(true, 'Incoming message')
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      // 先进入
+      await wrapper.find('.messageItem.left').trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+      expect((wrapper.vm as any).showActions).toBe(true)
+
+      // 再离开
+      await wrapper.find('.messageItem.left').trigger('mouseleave')
+      await wrapper.vm.$nextTick()
+      expect((wrapper.vm as any).showActions).toBe(false)
+    })
+
+    it('should not show action buttons for recalled incoming messages', async () => {
+      const message = createMessage(true, 'Recalled message')
+      message.isRecalled = true
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      // 触发 mouseenter 事件
+      await wrapper.find('.messageItem.left').trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+
+      // 撤回的消息不应该显示操作按钮
+      expect((wrapper.vm as any).showActions).toBe(false)
+    })
+
+    it('should show action buttons when hovering over outgoing message', async () => {
+      const message = createMessage(false, 'Outgoing message')
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      // 触发 mouseenter 事件
+      await wrapper.find('.messageItem.right').trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+
+      // 验证 showActions 被设置为 true
+      expect((wrapper.vm as any).showActions).toBe(true)
+    })
+
+    it('should not show action buttons for recalled outgoing messages', async () => {
+      const message = createMessage(false, 'Recalled message')
+      message.isRecalled = true
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      // 触发 mouseenter 事件
+      await wrapper.find('.messageItem.right').trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+
+      // 撤回的消息不应该显示操作按钮
+      expect((wrapper.vm as any).showActions).toBe(false)
+    })
+  })
 })
