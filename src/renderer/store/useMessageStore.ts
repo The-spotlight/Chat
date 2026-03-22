@@ -62,15 +62,9 @@ export const useMessageStore = defineStore('message', () => {
             referencedMessage.value = null;
         };
 
-        let truncateContent = (content: string, maxLength: number): string => {
-            if (!content) return '';
-            if (content.length <= maxLength) return content;
-            return content.slice(0, maxLength) + '...';
-        };
-
         let sendMessage = (content: string) => {
             if (!currentChat.value) return;
-            
+
             let model = new ModelMessage();
             model.createTime = Date.now();
             model.isInMsg = false;
@@ -80,16 +74,17 @@ export const useMessageStore = defineStore('message', () => {
             model.chatId = currentChat.value.id;
             model.isEdited = false;
             model.isRecalled = false;
-            
+
             if (referencedMessage.value) {
+                const refMsg = referencedMessage.value;
                 model.reference = {
-                    referencedMessageId: referencedMessage.value.id,
-                    referencedFromName: referencedMessage.value.fromName || '',
-                    referencedContent: truncateContent(referencedMessage.value.messageContent || '', 50)
+                    referencedMessageId: refMsg.id,
+                    referencedFromName: refMsg.fromName?.trim() || '未知用户',
+                    referencedContent: truncateContent(refMsg.messageContent || '', 50) || '空消息'
                 };
                 referencedMessage.value = null;
             }
-            
+
             data.value.push(model);
         };
 
@@ -100,16 +95,19 @@ export const useMessageStore = defineStore('message', () => {
         let recallMessage = (messageId: string) => {
             const message = data.value.find(m => m.id === messageId);
             if (!message || !canOperateMessage(message)) return false;
-            
+
             message.isRecalled = true;
             message.messageContent = '';
-            
+
             data.value.forEach(msg => {
                 if (msg.reference && msg.reference.referencedMessageId === messageId) {
-                    msg.reference.referencedContent = '消息已被撤回';
+                    msg.reference = {
+                        ...msg.reference,
+                        referencedContent: '消息已被撤回'
+                    };
                 }
             });
-            
+
             return true;
         };
 

@@ -26,12 +26,12 @@ const sendMessage = () => {
   if (!canSend.value) return;
 
   const content = inputContent.value.trim();
-  const currentChat = messageStore.currentChat;
+  const selectedChat = chatStore.getSelectedChat;
   
-  if (!currentChat) return;
+  if (!selectedChat) return;
   
   messageStore.sendMessage(content);
-  chatStore.updateLastMessage(currentChat.id, content);
+  chatStore.updateLastMessage(selectedChat.id, content);
 
   inputContent.value = "";
   focusInput();
