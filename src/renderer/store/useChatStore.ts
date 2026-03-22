@@ -103,10 +103,9 @@ export const useChatStore = defineStore('chat', () => {
         let baseData = data.value;
         
         if (trimmedKeyword) {
-            const safeKeyword = escapeRegExp(trimmedKeyword);
             baseData = data.value.filter(item => {
-                const nameMatch = safeIncludes(item.fromName, safeKeyword);
-                const lastMsgMatch = safeIncludes(item.lastMsg, safeKeyword);
+                const nameMatch = safeIncludes(item.fromName, trimmedKeyword);
+                const lastMsgMatch = safeIncludes(item.lastMsg, trimmedKeyword);
                 return nameMatch || lastMsgMatch;
             });
         }
