@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useMessageStore } from '../useMessageStore'
 import { truncateContent } from '../../utils/messageUtils'
@@ -8,6 +8,11 @@ import { ModelMessage } from '../../../model/ModelMessage'
 describe('useMessageStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('should initialize with empty data', () => {
@@ -208,6 +213,94 @@ describe('useMessageStore', () => {
       const result = truncateContent(longContent, 20)
       expect(result.length).toBe(23)
       expect(result.endsWith('...')).toBe(true)
+    })
+  })
+
+  describe('Bug #2 regression: reference card showing empty content', () => {
+    it('should show default sender name when fromName is undefined', () => {
+      const store = useMessageStore()
+      const chat = new ModelChat()
+      chat.id = 'test-chat-id'
+      chat.fromName = 'Test User'
+      chat.avatar = 'test-avatar.png'
+
+      store.initData(chat)
+
+      const referencedMsg = new ModelMessage()
+      referencedMsg.id = 'ref-msg-id'
+      referencedMsg.messageContent = 'Test content'
+
+      store.setReferencedMessage(referencedMsg)
+      store.sendMessage('Reply message')
+
+      const newMessage = store.data[store.data.length - 1]
+      expect(newMessage.reference).toBeDefined()
+      expect(newMessage.reference?.referencedFromName).toBe('未知发送者')
+    })
+
+    it('should show default content when messageContent is undefined', () => {
+      const store = useMessageStore()
+      const chat = new ModelChat()
+      chat.id = 'test-chat-id'
+      chat.fromName = 'Test User'
+      chat.avatar = 'test-avatar.png'
+
+      store.initData(chat)
+
+      const referencedMsg = new ModelMessage()
+      referencedMsg.id = 'ref-msg-id'
+      referencedMsg.fromName = 'Sender'
+
+      store.setReferencedMessage(referencedMsg)
+      store.sendMessage('Reply message')
+
+      const newMessage = store.data[store.data.length - 1]
+      expect(newMessage.reference).toBeDefined()
+      expect(newMessage.reference?.referencedContent).toBe('空消息')
+    })
+
+    it('should show default values when both fromName and messageContent are undefined', () => {
+      const store = useMessageStore()
+      const chat = new ModelChat()
+      chat.id = 'test-chat-id'
+      chat.fromName = 'Test User'
+      chat.avatar = 'test-avatar.png'
+
+      store.initData(chat)
+
+      const referencedMsg = new ModelMessage()
+      referencedMsg.id = 'ref-msg-id'
+
+      store.setReferencedMessage(referencedMsg)
+      store.sendMessage('Reply message')
+
+      const newMessage = store.data[store.data.length - 1]
+      expect(newMessage.reference).toBeDefined()
+      expect(newMessage.reference?.referencedFromName).toBe('未知发送者')
+      expect(newMessage.reference?.referencedContent).toBe('空消息')
+    })
+
+    it('should preserve valid fromName and messageContent', () => {
+      const store = useMessageStore()
+      const chat = new ModelChat()
+      chat.id = 'test-chat-id'
+      chat.fromName = 'Test User'
+      chat.avatar = 'test-avatar.png'
+
+      store.initData(chat)
+
+      const referencedMsg = new ModelMessage()
+      referencedMsg.id = 'ref-msg-id'
+      referencedMsg.fromName = 'Original Sender'
+      referencedMsg.messageContent = 'Original message content'
+
+      store.setReferencedMessage(referencedMsg)
+      store.sendMessage('Reply message')
+
+      const newMessage = store.data[store.data.length - 1]
+      expect(newMessage.reference).toBeDefined()
+      expect(newMessage.reference?.referencedFromName).toBe('Original Sender')
+      expect(newMessage.reference?.referencedContent).toBe('Original message content')
     })
   })
 })

@@ -152,9 +152,9 @@ describe('useMessageStore - Recall and Edit functionality', () => {
       store.initData(chat)
       
       const referencedMsg = store.data[1]
-      const referencingMsg = store.data[2]
+      const referencingMsgId = store.data[2].id
       
-      referencingMsg.reference = {
+      store.data[2].reference = {
         referencedMessageId: referencedMsg.id,
         referencedFromName: referencedMsg.fromName || '',
         referencedContent: 'Original content'
@@ -162,7 +162,8 @@ describe('useMessageStore - Recall and Edit functionality', () => {
       
       store.recallMessage(referencedMsg.id)
       
-      expect(referencingMsg.reference?.referencedContent).toBe('消息已被撤回')
+      const updatedReferencingMsg = store.data.find(m => m.id === referencingMsgId)
+      expect(updatedReferencingMsg?.reference?.referencedContent).toBe('消息已被撤回')
     })
   })
 
@@ -250,6 +251,96 @@ describe('useMessageStore - Recall and Edit functionality', () => {
       const foundMessage = store.getMessageById('non-existent-id')
       
       expect(foundMessage).toBeUndefined()
+    })
+  })
+
+  describe('Bug #3 regression: recall message should update reference card', () => {
+    it('should update reference content when referenced message is recalled', () => {
+      const store = useMessageStore()
+      const chat = createTestChat()
+      store.initData(chat)
+      
+      const referencedMsg = store.data[1]
+      const referencingMsg = store.data[2]
+      
+      referencingMsg.reference = {
+        referencedMessageId: referencedMsg.id,
+        referencedFromName: referencedMsg.fromName || '',
+        referencedContent: 'Original content'
+      }
+      
+      const result = store.recallMessage(referencedMsg.id)
+      
+      expect(result).toBe(true)
+      
+      const updatedReferencingMsg = store.data.find(m => m.id === referencingMsg.id)
+      expect(updatedReferencingMsg?.reference?.referencedContent).toBe('消息已被撤回')
+    })
+
+    it('should update all reference cards that reference the recalled message', () => {
+      const store = useMessageStore()
+      const chat = createTestChat()
+      store.initData(chat)
+      
+      const referencedMsg = store.data[1]
+      
+      store.data[2].reference = {
+        referencedMessageId: referencedMsg.id,
+        referencedFromName: 'Sender',
+        referencedContent: 'Original content 1'
+      }
+      
+      store.data[3].reference = {
+        referencedMessageId: referencedMsg.id,
+        referencedFromName: 'Sender',
+        referencedContent: 'Original content 2'
+      }
+      
+      const result = store.recallMessage(referencedMsg.id)
+      
+      expect(result).toBe(true)
+      
+      expect(store.data[2].reference?.referencedContent).toBe('消息已被撤回')
+      expect(store.data[3].reference?.referencedContent).toBe('消息已被撤回')
+    })
+
+    it('should not affect reference cards that reference other messages', () => {
+      const store = useMessageStore()
+      const chat = createTestChat()
+      store.initData(chat)
+      
+      const msgToRecall = store.data[1]
+      const otherMsg = store.data[2]
+      
+      store.data[3].reference = {
+        referencedMessageId: otherMsg.id,
+        referencedFromName: 'Sender',
+        referencedContent: 'Should not change'
+      }
+      
+      const result = store.recallMessage(msgToRecall.id)
+      
+      expect(result).toBe(true)
+      
+      expect(store.data[3].reference?.referencedContent).toBe('Should not change')
+    })
+
+    it('should mark the recalled message correctly', () => {
+      const store = useMessageStore()
+      const chat = createTestChat()
+      store.initData(chat)
+      
+      const msgToRecall = store.data[1]
+      const originalContent = msgToRecall.messageContent
+      
+      const result = store.recallMessage(msgToRecall.id)
+      
+      expect(result).toBe(true)
+      
+      const recalledMsg = store.data.find(m => m.id === msgToRecall.id)
+      expect(recalledMsg?.isRecalled).toBe(true)
+      expect(recalledMsg?.messageContent).toBe('')
+      expect(recalledMsg?.messageContent).not.toBe(originalContent)
     })
   })
 })
