@@ -69,6 +69,8 @@ export const useChatStore = defineStore('chat', () => {
     let data: Ref<ModelChat[]> = ref(prepareData())
     const searchKeyword = ref('')
     const isInitialized = ref(false)
+    // 用于触发排序的标记，更新时间时会触发 filteredData 重新计算
+    const sortTrigger = ref(0)
 
     const initializeMessageStore = () => {
         if (isInitialized.value) return;
@@ -98,6 +100,9 @@ export const useChatStore = defineStore('chat', () => {
     });
 
     const filteredData = computed(() => {
+        // 依赖 sortTrigger 以确保更新 lastMessageTime 时重新排序
+        sortTrigger.value;
+        
         const trimmedKeyword = searchKeyword.value.trim();
         
         let baseData = data.value;
@@ -118,7 +123,7 @@ export const useChatStore = defineStore('chat', () => {
         data.value.forEach(i => i.isSelected = false)
         item.isSelected = true
         item.unreadCount = 0;
-        if (options?.clearSearch !== false) {
+        if (options?.clearSearch === true) {
             searchKeyword.value = '';
         }
         const messageStore = useMessageStore()
@@ -135,6 +140,8 @@ export const useChatStore = defineStore('chat', () => {
             chat.lastMsg = content;
             chat.sendTime = '刚刚';
             chat.lastMessageTime = Date.now();
+            // 触发排序标记，强制 filteredData 重新计算
+            sortTrigger.value++;
         }
     };
 
@@ -151,6 +158,8 @@ export const useChatStore = defineStore('chat', () => {
             } else {
                 chat.pinnedAt = undefined;
             }
+            // 触发排序标记，强制 filteredData 重新计算
+            sortTrigger.value++;
         }
     };
 

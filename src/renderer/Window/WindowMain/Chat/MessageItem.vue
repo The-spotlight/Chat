@@ -115,7 +115,7 @@ const handleCopyAction = () => {
 };
 
 const handleMouseEnter = () => {
-  if (!props.data.isRecalled && !props.data.isInMsg) {
+  if (!props.data.isRecalled) {
     showActions.value = true;
   }
 };
@@ -131,6 +131,8 @@ const handleMouseLeave = () => {
       class="messageItem left"
       :class="{ highlighted: isHighlighted }"
       @contextmenu="handleContextMenu"
+      @mouseenter="handleMouseEnter"
+      @mouseleave="handleMouseLeave"
     >
       <div class="avatar">
         <img :src="data?.avatar" alt=""/>
@@ -158,6 +160,25 @@ const handleMouseLeave = () => {
           <span class="message-time">{{ formatTime(data?.createTime) }}</span>
         </div>
       </div>
+      <transition name="fade">
+        <div v-if="showActions && !data?.isRecalled" class="action-buttons left-actions">
+          <div class="dropdown">
+            <button class="action-btn more-btn" @click.stop>
+              <span class="icon">⋮</span>
+            </button>
+            <div class="dropdown-menu">
+              <div class="dropdown-item" @click="handleContextMenuClick('quote')">
+                <span class="dropdown-icon">↩</span>
+                <span>引用</span>
+              </div>
+              <div class="dropdown-item" @click="handleCopyAction">
+                <span class="dropdown-icon">📋</span>
+                <span>复制</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
     </div>
   </template>
   <template v-else>
@@ -560,6 +581,11 @@ const handleMouseLeave = () => {
 .left {
   .message-meta {
     justify-content: flex-start;
+  }
+
+  .left-actions {
+    right: auto;
+    left: 70px;
   }
 }
 </style>

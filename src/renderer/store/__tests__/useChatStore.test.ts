@@ -162,7 +162,7 @@ describe('useChatStore', () => {
   })
 
   describe('selectItem with search integration', () => {
-    it('should clear search keyword when selecting a chat', () => {
+    it('should preserve search keyword by default when selecting a chat', () => {
       const store = useChatStore()
       
       store.setSearchKeyword('聊天对象1')
@@ -171,7 +171,8 @@ describe('useChatStore', () => {
       const chatToSelect = store.data[0]
       store.selectItem(chatToSelect)
       
-      expect(store.searchKeyword).toBe('')
+      // 默认不清空搜索
+      expect(store.searchKeyword).toBe('聊天对象1')
     })
 
     it('should initialize message store when selecting a chat', () => {
@@ -223,7 +224,7 @@ describe('useChatStore', () => {
       expect(store.searchKeyword).toBe('')
     })
 
-    it('should clear search keyword by default when no options provided', () => {
+    it('should preserve search keyword by default when no options provided', () => {
       const store = useChatStore()
       
       store.setSearchKeyword('聊天对象1')
@@ -231,7 +232,8 @@ describe('useChatStore', () => {
       const chatToSelect = store.data[0]
       store.selectItem(chatToSelect)
       
-      expect(store.searchKeyword).toBe('')
+      // 默认不清空搜索
+      expect(store.searchKeyword).toBe('聊天对象1')
     })
   })
 
@@ -420,6 +422,103 @@ describe('useChatStore', () => {
       
       store.data[0].unreadCount = 1
       expect(store.hasUnread).toBe(true)
+    })
+  })
+
+  describe('Bug #1: updateLastMessage should trigger resort', () => {
+    it('should move chat to top of unpinned chats after updating last message', () => {
+      const store = useChatStore()
+      const baseTime = Date.now()
+      
+      // 设置初始时间，确保 chat[5] 时间较旧
+      store.data[0].lastMessageTime = baseTime - 5000
+      store.data[1].lastMessageTime = baseTime - 4000
+      store.data[2].lastMessageTime = baseTime - 3000
+      store.data[3].lastMessageTime = baseTime - 2000
+      store.data[4].lastMessageTime = baseTime - 1000
+      store.data[5].lastMessageTime = baseTime - 6000
+      
+      const chat5 = store.data[5]
+      const chat5Id = chat5.id!
+      
+      // 更新 chat5 的最后消息时间
+      vi.setSystemTime(baseTime)
+      store.updateLastMessage(chat5Id, 'New message')
+      
+      // 验证 chat5 移动到了未置顶列表的最前面
+      const unpinnedChats = store.filteredData.filter(c => !c.isPinned)
+      expect(unpinnedChats[0].id).toBe(chat5Id)
+      expect(unpinnedChats[0].lastMsg).toBe('New message')
+    })
+
+    it('should not affect pinned chats order when updating unpinned chat', () => {
+      const store = useChatStore()
+      const baseTime = Date.now()
+      
+      // 置顶 chat[0]
+      vi.setSystemTime(baseTime - 2000)
+      store.togglePin(store.data[0].id!)
+      
+      // 设置未置顶聊天的时间
+      store.data[1].lastMessageTime = baseTime - 3000
+      store.data[2].lastMessageTime = baseTime - 4000
+      
+      // 更新 chat[2] 的消息
+      vi.setSystemTime(baseTime)
+      store.updateLastMessage(store.data[2].id!, 'New message')
+      
+      // 验证置顶聊天仍在最前面
+      expect(store.filteredData[0].isPinned).toBe(true)
+      expect(store.filteredData[0].id).toBe(store.data[0].id)
+    })
+  })
+
+  describe('Bug #2: selectItem should preserve search by default', () => {
+    it('should preserve search keyword when selecting a chat without options', () => {
+      const store = useChatStore()
+      
+      store.setSearchKeyword('聊天对象1')
+      expect(store.searchKeyword).toBe('聊天对象1')
+      
+      const chatToSelect = store.data[0]
+      store.selectItem(chatToSelect)
+      
+      // 默认不清空搜索
+      expect(store.searchKeyword).toBe('聊天对象1')
+    })
+
+    it('should clear search keyword when explicitly passing clearSearch: true', () => {
+      const store = useChatStore()
+      
+      store.setSearchKeyword('聊天对象1')
+      expect(store.searchKeyword).toBe('聊天对象1')
+      
+      const chatToSelect = store.data[0]
+      store.selectItem(chatToSelect, { clearSearch: true })
+      
+      expect(store.searchKeyword).toBe('')
+    })
+
+    it('should allow switching between search results without losing search state', () => {
+      const store = useChatStore()
+      
+      // 设置搜索关键词匹配多个结果
+      store.data[0].fromName = '项目组A'
+      store.data[1].fromName = '项目组B'
+      store.data[2].fromName = '其他聊天'
+      
+      store.setSearchKeyword('项目组')
+      expect(store.filteredData.length).toBe(2)
+      
+      // 选择第一个结果
+      store.selectItem(store.data[0])
+      expect(store.searchKeyword).toBe('项目组')
+      expect(store.filteredData.length).toBe(2)
+      
+      // 切换到第二个结果
+      store.selectItem(store.data[1])
+      expect(store.searchKeyword).toBe('项目组')
+      expect(store.filteredData.length).toBe(2)
     })
   })
 })
