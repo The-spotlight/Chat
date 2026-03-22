@@ -2,6 +2,11 @@ import {defineStore} from "pinia";
 import {ModelChat} from "../../model/ModelChat";
 import {ref} from "vue";
 import {ModelMessage, MessageReference} from "../../model/ModelMessage";
+import {canRecallMessage, canEditMessage} from "../utils/messageUtils";
+
+export const RECALL_TEXT_SELF = "你撤回了一条消息";
+export const RECALL_TEXT_OTHER = "对方撤回了一条消息";
+export const RECALL_REFERENCE_TEXT = "消息已被撤回";
 
 export const useMessageStore = defineStore('message', () => {
         let data = ref<ModelMessage[]>([]);
@@ -70,6 +75,44 @@ export const useMessageStore = defineStore('message', () => {
             highlightedMessageId.value = id;
         };
 
+        let recallMessage = (messageId: string): boolean => {
+            const message = data.value.find(m => m.id === messageId);
+            if (!message || !canRecallMessage(message)) {
+                return false;
+            }
+            
+            message.isRecalled = true;
+            
+            updateReferencedContent(messageId, RECALL_REFERENCE_TEXT);
+            
+            return true;
+        };
+
+        let editMessage = (messageId: string, newContent: string): boolean => {
+            const message = data.value.find(m => m.id === messageId);
+            if (!message || !canEditMessage(message)) {
+                return false;
+            }
+            
+            message.messageContent = newContent;
+            message.isEdited = true;
+            message.editedAt = Date.now();
+            
+            return true;
+        };
+
+        let updateReferencedContent = (referencedMessageId: string, newContent: string) => {
+            data.value.forEach(msg => {
+                if (msg.reference && msg.reference.referencedMessageId === referencedMessageId) {
+                    msg.reference.referencedContent = newContent;
+                }
+            });
+        };
+
+        let getMessageById = (messageId: string): ModelMessage | undefined => {
+            return data.value.find(m => m.id === messageId);
+        };
+
         return {
             data, 
             initData, 
@@ -80,7 +123,11 @@ export const useMessageStore = defineStore('message', () => {
             clearReferencedMessage,
             highlightedMessageId,
             setHighlightedMessageId,
-            truncateContent
+            truncateContent,
+            recallMessage,
+            editMessage,
+            updateReferencedContent,
+            getMessageById
         };
     },
     {

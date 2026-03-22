@@ -1,18 +1,40 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ModelMessage } from "../../../../model/ModelMessage";
+import { canRecallMessage, canEditMessage } from "../../../utils/messageUtils";
 
 const props = defineProps<{
   visible: boolean;
   x: number;
   y: number;
+  message: ModelMessage | null;
 }>();
 
 const emit = defineEmits<{
   (e: 'select'): void;
+  (e: 'recall'): void;
+  (e: 'edit'): void;
+  (e: 'copy'): void;
   (e: 'close'): void;
 }>();
 
 const menuRef = ref<HTMLDivElement | null>(null);
+
+const isRecalled = computed(() => props.message?.isRecalled ?? false);
+
+const canRecall = computed(() => {
+  if (!props.message) return false;
+  return canRecallMessage(props.message);
+});
+
+const canEdit = computed(() => {
+  if (!props.message) return false;
+  return canEditMessage(props.message);
+});
+
+const showReference = computed(() => !isRecalled.value);
+
+const showCopy = computed(() => !isRecalled.value);
 
 const handleClickOutside = (event: MouseEvent) => {
   if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
@@ -26,8 +48,23 @@ const handleEscape = (event: KeyboardEvent) => {
   }
 };
 
-const handleSelect = () => {
+const handleReference = () => {
   emit('select');
+  emit('close');
+};
+
+const handleRecall = () => {
+  emit('recall');
+  emit('close');
+};
+
+const handleEdit = () => {
+  emit('edit');
+  emit('close');
+};
+
+const handleCopy = () => {
+  emit('copy');
   emit('close');
 };
 
@@ -50,9 +87,21 @@ onUnmounted(() => {
       class="context-menu"
       :style="{ left: x + 'px', top: y + 'px' }"
     >
-      <div class="menu-item" @click="handleSelect">
+      <div v-if="showReference" class="menu-item" @click="handleReference">
         <span class="menu-icon">↩</span>
         <span>引用</span>
+      </div>
+      <div v-if="canRecall" class="menu-item" @click="handleRecall">
+        <span class="menu-icon">↩</span>
+        <span>撤回</span>
+      </div>
+      <div v-if="canEdit" class="menu-item" @click="handleEdit">
+        <span class="menu-icon">✎</span>
+        <span>编辑</span>
+      </div>
+      <div v-if="showCopy" class="menu-item" @click="handleCopy">
+        <span class="menu-icon">📋</span>
+        <span>复制</span>
       </div>
     </div>
   </Teleport>

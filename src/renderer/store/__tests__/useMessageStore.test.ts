@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { useMessageStore } from '../useMessageStore'
+import { useMessageStore, RECALL_TEXT_SELF, RECALL_TEXT_OTHER, RECALL_REFERENCE_TEXT } from '../useMessageStore'
 import { ModelChat } from '../../../model/ModelChat'
 import { ModelMessage } from '../../../model/ModelMessage'
 
@@ -210,6 +210,338 @@ describe('useMessageStore', () => {
       const result = store.truncateContent(longContent, 20)
       expect(result.length).toBe(23)
       expect(result.endsWith('...')).toBe(true)
+    })
+  })
+
+  describe('recall functionality', () => {
+    let originalDateNow: typeof Date.now
+
+    beforeEach(() => {
+      originalDateNow = Date.now
+    })
+
+    afterEach(() => {
+      Date.now = originalDateNow
+    })
+
+    const mockDateNow = (timestamp: number) => {
+      Date.now = vi.fn(() => timestamp)
+    }
+
+    it('should recall message within 2 minutes', () => {
+      const store = useMessageStore()
+      const chat = new ModelChat()
+      chat.id = 'test-chat-id'
+      chat.avatar = 'test-avatar.png'
+      
+      store.initData(chat)
+      
+      const now = Date.now()
+      mockDateNow(now)
+      
+      const message = new ModelMessage()
+      message.id = 'msg-to-recall'
+      message.isInMsg = false
+      message.createTime = now - 60 * 1000
+      message.messageContent = 'Message to recall'
+      
+      store.data.push(message)
+      
+      const result = store.recallMessage('msg-to-recall')
+      
+      expect(result).toBe(true)
+      expect(message.isRecalled).toBe(true)
+    })
+
+    it('should not recall message older than 2 minutes', () => {
+      const store = useMessageStore()
+      const chat = new ModelChat()
+      chat.id = 'test-chat-id'
+      chat.avatar = 'test-avatar.png'
+      
+      store.initData(chat)
+      
+      const now = Date.now()
+      mockDateNow(now)
+      
+      const message = new ModelMessage()
+      message.id = 'msg-old'
+      message.isInMsg = false
+      message.createTime = now - 3 * 60 * 1000
+      message.messageContent = 'Old message'
+      
+      store.data.push(message)
+      
+      const result = store.recallMessage('msg-old')
+      
+      expect(result).toBe(false)
+      expect(message.isRecalled).toBeUndefined()
+    })
+
+    it('should not recall incoming message', () => {
+      const store = useMessageStore()
+      const chat = new ModelChat()
+      chat.id = 'test-chat-id'
+      chat.avatar = 'test-avatar.png'
+      
+      store.initData(chat)
+      
+      const now = Date.now()
+      mockDateNow(now)
+      
+      const message = new ModelMessage()
+      message.id = 'msg-incoming'
+      message.isInMsg = true
+      message.createTime = now
+      message.messageContent = 'Incoming message'
+      
+      store.data.push(message)
+      
+      const result = store.recallMessage('msg-incoming')
+      
+      expect(result).toBe(false)
+      expect(message.isRecalled).toBeUndefined()
+    })
+
+    it('should not recall already recalled message', () => {
+      const store = useMessageStore()
+      const chat = new ModelChat()
+      chat.id = 'test-chat-id'
+      chat.avatar = 'test-avatar.png'
+      
+      store.initData(chat)
+      
+      const now = Date.now()
+      mockDateNow(now)
+      
+      const message = new ModelMessage()
+      message.id = 'msg-recalled'
+      message.isInMsg = false
+      message.createTime = now
+      message.messageContent = 'Already recalled'
+      message.isRecalled = true
+      
+      store.data.push(message)
+      
+      const result = store.recallMessage('msg-recalled')
+      
+      expect(result).toBe(false)
+    })
+
+    it('should update reference content when message is recalled', () => {
+      const store = useMessageStore()
+      const chat = new ModelChat()
+      chat.id = 'test-chat-id'
+      chat.avatar = 'test-avatar.png'
+      
+      store.initData(chat)
+      
+      const now = Date.now()
+      mockDateNow(now)
+      
+      const originalMessage = new ModelMessage()
+      originalMessage.id = 'original-msg'
+      originalMessage.isInMsg = false
+      originalMessage.createTime = now
+      originalMessage.messageContent = 'Original message'
+      
+      store.data.push(originalMessage)
+      
+      const replyMessage = new ModelMessage()
+      replyMessage.id = 'reply-msg'
+      replyMessage.isInMsg = false
+      replyMessage.createTime = now
+      replyMessage.messageContent = 'Reply message'
+      replyMessage.reference = {
+        referencedMessageId: 'original-msg',
+        referencedFromName: '我',
+        referencedContent: 'Original message'
+      }
+      
+      store.data.push(replyMessage)
+      
+      store.recallMessage('original-msg')
+      
+      expect(replyMessage.reference?.referencedContent).toBe(RECALL_REFERENCE_TEXT)
+    })
+
+    it('should export correct recall text constants', () => {
+      expect(RECALL_TEXT_SELF).toBe('你撤回了一条消息')
+      expect(RECALL_TEXT_OTHER).toBe('对方撤回了一条消息')
+      expect(RECALL_REFERENCE_TEXT).toBe('消息已被撤回')
+    })
+  })
+
+  describe('edit functionality', () => {
+    let originalDateNow: typeof Date.now
+
+    beforeEach(() => {
+      originalDateNow = Date.now
+    })
+
+    afterEach(() => {
+      Date.now = originalDateNow
+    })
+
+    const mockDateNow = (timestamp: number) => {
+      Date.now = vi.fn(() => timestamp)
+    }
+
+    it('should edit message within 2 minutes', () => {
+      const store = useMessageStore()
+      const chat = new ModelChat()
+      chat.id = 'test-chat-id'
+      chat.avatar = 'test-avatar.png'
+      
+      store.initData(chat)
+      
+      const now = Date.now()
+      mockDateNow(now)
+      
+      const message = new ModelMessage()
+      message.id = 'msg-to-edit'
+      message.isInMsg = false
+      message.createTime = now - 60 * 1000
+      message.messageContent = 'Original message'
+      
+      store.data.push(message)
+      
+      const result = store.editMessage('msg-to-edit', 'Edited message')
+      
+      expect(result).toBe(true)
+      expect(message.messageContent).toBe('Edited message')
+      expect(message.isEdited).toBe(true)
+      expect(message.editedAt).toBeDefined()
+    })
+
+    it('should not edit message older than 2 minutes', () => {
+      const store = useMessageStore()
+      const chat = new ModelChat()
+      chat.id = 'test-chat-id'
+      chat.avatar = 'test-avatar.png'
+      
+      store.initData(chat)
+      
+      const now = Date.now()
+      mockDateNow(now)
+      
+      const message = new ModelMessage()
+      message.id = 'msg-old'
+      message.isInMsg = false
+      message.createTime = now - 3 * 60 * 1000
+      message.messageContent = 'Old message'
+      
+      store.data.push(message)
+      
+      const result = store.editMessage('msg-old', 'New content')
+      
+      expect(result).toBe(false)
+      expect(message.messageContent).toBe('Old message')
+      expect(message.isEdited).toBeUndefined()
+    })
+
+    it('should not edit incoming message', () => {
+      const store = useMessageStore()
+      const chat = new ModelChat()
+      chat.id = 'test-chat-id'
+      chat.avatar = 'test-avatar.png'
+      
+      store.initData(chat)
+      
+      const now = Date.now()
+      mockDateNow(now)
+      
+      const message = new ModelMessage()
+      message.id = 'msg-incoming'
+      message.isInMsg = true
+      message.createTime = now
+      message.messageContent = 'Incoming message'
+      
+      store.data.push(message)
+      
+      const result = store.editMessage('msg-incoming', 'New content')
+      
+      expect(result).toBe(false)
+      expect(message.messageContent).toBe('Incoming message')
+    })
+
+    it('should not edit recalled message', () => {
+      const store = useMessageStore()
+      const chat = new ModelChat()
+      chat.id = 'test-chat-id'
+      chat.avatar = 'test-avatar.png'
+      
+      store.initData(chat)
+      
+      const now = Date.now()
+      mockDateNow(now)
+      
+      const message = new ModelMessage()
+      message.id = 'msg-recalled'
+      message.isInMsg = false
+      message.createTime = now
+      message.messageContent = 'Recalled message'
+      message.isRecalled = true
+      
+      store.data.push(message)
+      
+      const result = store.editMessage('msg-recalled', 'New content')
+      
+      expect(result).toBe(false)
+    })
+
+    it('should set editedAt timestamp when editing', () => {
+      const store = useMessageStore()
+      const chat = new ModelChat()
+      chat.id = 'test-chat-id'
+      chat.avatar = 'test-avatar.png'
+      
+      store.initData(chat)
+      
+      const editTime = 1700000000000
+      mockDateNow(editTime)
+      
+      const message = new ModelMessage()
+      message.id = 'msg-edit'
+      message.isInMsg = false
+      message.createTime = editTime - 60 * 1000
+      message.messageContent = 'Original'
+      
+      store.data.push(message)
+      
+      store.editMessage('msg-edit', 'Edited')
+      
+      expect(message.editedAt).toBe(editTime)
+    })
+  })
+
+  describe('getMessageById', () => {
+    it('should return message by id', () => {
+      const store = useMessageStore()
+      const chat = new ModelChat()
+      chat.id = 'test-chat-id'
+      chat.avatar = 'test-avatar.png'
+      
+      store.initData(chat)
+      
+      const message = new ModelMessage()
+      message.id = 'test-msg-id'
+      message.messageContent = 'Test message'
+      
+      store.data.push(message)
+      
+      const found = store.getMessageById('test-msg-id')
+      
+      expect(found).toBeDefined()
+      expect(found?.messageContent).toBe('Test message')
+    })
+
+    it('should return undefined for non-existent id', () => {
+      const store = useMessageStore()
+      
+      const found = store.getMessageById('non-existent-id')
+      
+      expect(found).toBeUndefined()
     })
   })
 })

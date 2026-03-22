@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import MessageItem from '../MessageItem.vue'
 import { ModelMessage } from '../../../../../model/ModelMessage'
-import { useMessageStore } from '../../../../store/useMessageStore'
+import { useMessageStore, RECALL_TEXT_SELF, RECALL_TEXT_OTHER } from '../../../../store/useMessageStore'
 
 describe('MessageItem', () => {
   beforeEach(() => {
@@ -21,6 +21,7 @@ describe('MessageItem', () => {
     message.messageContent = content
     message.fromName = isInMsg ? 'Sender' : '我'
     message.avatar = 'test-avatar.png'
+    message.createTime = Date.now()
     return message
   }
 
@@ -194,5 +195,174 @@ describe('MessageItem', () => {
 
     const referenceText = wrapper.find('.reference-text').text()
     expect(referenceText).toBe('This is a very long reference content that should be truncated at 50 characters...')
+  })
+
+  describe('recall functionality', () => {
+    it('should display recall text for recalled own message', () => {
+      const message = createMessage(false, 'Original message')
+      message.isRecalled = true
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      expect(wrapper.find('.recalled-text').exists()).toBe(true)
+      expect(wrapper.find('.recalled-text').text()).toBe(RECALL_TEXT_SELF)
+    })
+
+    it('should display recall text for recalled incoming message', () => {
+      const message = createMessage(true, 'Original message')
+      message.isRecalled = true
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      expect(wrapper.find('.recalled-text').exists()).toBe(true)
+      expect(wrapper.find('.recalled-text').text()).toBe(RECALL_TEXT_OTHER)
+    })
+
+    it('should not display message content for recalled message', () => {
+      const message = createMessage(false, 'Original message')
+      message.isRecalled = true
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      expect(wrapper.find('.message-text').exists()).toBe(false)
+    })
+
+    it('should apply recalled class for recalled message', () => {
+      const message = createMessage(false, 'Original message')
+      message.isRecalled = true
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      expect(wrapper.find('.messageItem').classes()).toContain('recalled')
+    })
+
+    it('should not show context menu for recalled message', async () => {
+      const message = createMessage(false, 'Original message')
+      message.isRecalled = true
+      
+      mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      const messageItem = document.querySelector('.messageItem') as HTMLElement
+      messageItem?.dispatchEvent(new MouseEvent('contextmenu', {
+        bubbles: true,
+        cancelable: true,
+        clientX: 100,
+        clientY: 100
+      }))
+
+      await new Promise(resolve => setTimeout(resolve, 0))
+
+      expect(document.querySelector('.context-menu')).toBeNull()
+    })
+  })
+
+  describe('edit functionality', () => {
+    it('should display edited label for edited message', () => {
+      const message = createMessage(false, 'Edited message')
+      message.isEdited = true
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      expect(wrapper.find('.edited-label').exists()).toBe(true)
+      expect(wrapper.find('.edited-label').text()).toBe('已编辑')
+    })
+
+    it('should not display edited label for non-edited message', () => {
+      const message = createMessage(false, 'Normal message')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      expect(wrapper.find('.edited-label').exists()).toBe(false)
+    })
+
+    it('should not display edited label for recalled message', () => {
+      const message = createMessage(false, 'Recalled message')
+      message.isEdited = true
+      message.isRecalled = true
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      expect(wrapper.find('.edited-label').exists()).toBe(false)
+    })
+  })
+
+  describe('action buttons', () => {
+    it('should not show action buttons for incoming message', () => {
+      const message = createMessage(true)
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      expect(wrapper.find('.action-buttons').exists()).toBe(false)
+    })
+
+    it('should not show action buttons for recalled message', () => {
+      const message = createMessage(false)
+      message.isRecalled = true
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      expect(wrapper.find('.action-buttons').exists()).toBe(false)
+    })
+
+    it('should not show action buttons for message older than 2 minutes', () => {
+      const message = createMessage(false)
+      message.createTime = Date.now() - 3 * 60 * 1000
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      expect(wrapper.find('.action-buttons').exists()).toBe(false)
+    })
+
+    it('should show action buttons for own message within time limit on hover', async () => {
+      const message = createMessage(false)
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      await wrapper.find('.messageItem').trigger('mouseenter')
+      
+      expect(wrapper.find('.action-buttons').exists()).toBe(true)
+    })
+  })
+
+  describe('reference with recalled message', () => {
+    it('should display "消息已被撤回" when referenced message is recalled', () => {
+      const message = createMessage(true)
+      message.reference = {
+        referencedMessageId: 'ref-id',
+        referencedFromName: 'Sender',
+        referencedContent: '消息已被撤回'
+      }
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      expect(wrapper.find('.reference-text').text()).toBe('消息已被撤回')
+    })
   })
 })
