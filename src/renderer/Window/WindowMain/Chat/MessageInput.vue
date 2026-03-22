@@ -26,18 +26,22 @@ const sendMessage = () => {
   if (!canSend.value) return;
 
   const content = inputContent.value.trim();
-  messageStore.sendMessage(content);
+  const currentChat = messageStore.currentChat;
   
-  if (messageStore.currentChat) {
-    chatStore.updateLastMessage(messageStore.currentChat.id!, content);
-  }
+  if (!currentChat) return;
+  
+  messageStore.sendMessage(content);
+  chatStore.updateLastMessage(currentChat.id, content);
 
   inputContent.value = "";
   focusInput();
 };
 
 const handleKeydown = (e: KeyboardEvent) => {
-  if (e.key === "Enter" && !e.shiftKey) {
+  if (e.key === "Enter") {
+    if (e.shiftKey) {
+      return;
+    }
     e.preventDefault();
     sendMessage();
   }

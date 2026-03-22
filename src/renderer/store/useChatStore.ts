@@ -1,6 +1,6 @@
 import {defineStore} from "pinia";
 import {ModelChat} from "../../model/ModelChat";
-import {Ref, ref, computed} from "vue";
+import {Ref, ref, computed, watch} from "vue";
 import {useMessageStore} from "./useMessageStore";
 
 
@@ -68,6 +68,18 @@ const sortChats = (chats: ModelChat[]): ModelChat[] => {
 export const useChatStore = defineStore('chat', () => {
     let data: Ref<ModelChat[]> = ref(prepareData())
     const searchKeyword = ref('')
+    const isInitialized = ref(false)
+
+    const initializeMessageStore = () => {
+        if (isInitialized.value) return;
+        isInitialized.value = true;
+        
+        const selectedChat = data.value.find(item => item.isSelected);
+        if (selectedChat) {
+            const messageStore = useMessageStore();
+            messageStore.initData(selectedChat);
+        }
+    };
 
     const setSearchKeyword = (keyword: string) => {
         const maxLength = 50;
@@ -102,11 +114,14 @@ export const useChatStore = defineStore('chat', () => {
         return sortChats(baseData);
     });
 
-    let selectItem = (item: ModelChat) => {
+    let selectItem = (item: ModelChat, options?: { clearSearch?: boolean }) => {
         if (item.isSelected) return;
         data.value.forEach(i => i.isSelected = false)
         item.isSelected = true
         item.unreadCount = 0;
+        if (options?.clearSearch !== false) {
+            searchKeyword.value = '';
+        }
         const messageStore = useMessageStore()
         messageStore.initData(item)
     }
@@ -188,6 +203,14 @@ export const useChatStore = defineStore('chat', () => {
         clearUnread,
         markAllAsRead,
         totalUnreadCount,
-        hasUnread
+        hasUnread,
+        initializeMessageStore,
+        isInitialized
     }
+}, {
+    persist: {
+        key: 'chat-store',
+        storage: localStorage,
+        paths: ['data'],
+    },
 })
