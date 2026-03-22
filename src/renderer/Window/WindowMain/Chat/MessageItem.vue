@@ -115,12 +115,16 @@ const handleCopyAction = () => {
 };
 
 const handleMouseEnter = () => {
-  if (!props.data.isRecalled && !props.data.isInMsg) {
+  if (!props.data.isRecalled) {
     showActions.value = true;
   }
 };
 
 const handleMouseLeave = () => {
+  showActions.value = false;
+};
+
+const hideActions = () => {
   showActions.value = false;
 };
 </script>
@@ -131,6 +135,8 @@ const handleMouseLeave = () => {
       class="messageItem left"
       :class="{ highlighted: isHighlighted }"
       @contextmenu="handleContextMenu"
+      @mouseenter="handleMouseEnter"
+      @mouseleave="handleMouseLeave"
     >
       <div class="avatar">
         <img :src="data?.avatar" alt=""/>
@@ -158,6 +164,25 @@ const handleMouseLeave = () => {
           <span class="message-time">{{ formatTime(data?.createTime) }}</span>
         </div>
       </div>
+      <transition name="fade">
+        <div v-if="showActions && !data?.isRecalled" class="action-buttons action-buttons-left">
+          <div class="dropdown">
+            <button class="action-btn more-btn" @click.stop>
+              <span class="icon">⋮</span>
+            </button>
+            <div class="dropdown-menu">
+              <div class="dropdown-item" @click="messageStore.setReferencedMessage(props.data); hideActions()">
+                <span class="dropdown-icon">↩</span>
+                <span>引用</span>
+              </div>
+              <div class="dropdown-item" @click="handleCopyAction(); hideActions()">
+                <span class="dropdown-icon">📋</span>
+                <span>复制</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
     </div>
   </template>
   <template v-else>
@@ -217,15 +242,15 @@ const handleMouseLeave = () => {
               <span class="icon">⋮</span>
             </button>
             <div class="dropdown-menu">
-              <div v-if="canOperate" class="dropdown-item" @click="startEdit">
+              <div v-if="canOperate" class="dropdown-item" @click="startEdit(); hideActions()">
                 <span class="dropdown-icon">✏️</span>
                 <span>编辑</span>
               </div>
-              <div v-if="canOperate" class="dropdown-item" @click="handleRecallAction">
+              <div v-if="canOperate" class="dropdown-item" @click="handleRecallAction(); hideActions()">
                 <span class="dropdown-icon">↶</span>
                 <span>撤回</span>
               </div>
-              <div class="dropdown-item" @click="handleCopyAction">
+              <div class="dropdown-item" @click="handleCopyAction(); hideActions()">
                 <span class="dropdown-icon">📋</span>
                 <span>复制</span>
               </div>
@@ -476,6 +501,11 @@ const handleMouseLeave = () => {
   display: flex;
   gap: 4px;
   z-index: 10;
+}
+
+.action-buttons-left {
+  right: auto;
+  left: 70px;
 }
 
 .action-btn {

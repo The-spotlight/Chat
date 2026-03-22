@@ -162,7 +162,7 @@ describe('useChatStore', () => {
   })
 
   describe('selectItem with search integration', () => {
-    it('should clear search keyword when selecting a chat', () => {
+    it('should preserve search keyword when selecting a chat by default', () => {
       const store = useChatStore()
       
       store.setSearchKeyword('聊天对象1')
@@ -171,7 +171,7 @@ describe('useChatStore', () => {
       const chatToSelect = store.data[0]
       store.selectItem(chatToSelect)
       
-      expect(store.searchKeyword).toBe('')
+      expect(store.searchKeyword).toBe('聊天对象1')
     })
 
     it('should initialize message store when selecting a chat', () => {
@@ -223,7 +223,7 @@ describe('useChatStore', () => {
       expect(store.searchKeyword).toBe('')
     })
 
-    it('should clear search keyword by default when no options provided', () => {
+    it('should preserve search keyword by default when no options provided', () => {
       const store = useChatStore()
       
       store.setSearchKeyword('聊天对象1')
@@ -231,7 +231,7 @@ describe('useChatStore', () => {
       const chatToSelect = store.data[0]
       store.selectItem(chatToSelect)
       
-      expect(store.searchKeyword).toBe('')
+      expect(store.searchKeyword).toBe('聊天对象1')
     })
   })
 
@@ -420,6 +420,109 @@ describe('useChatStore', () => {
       
       store.data[0].unreadCount = 1
       expect(store.hasUnread).toBe(true)
+    })
+  })
+
+  describe('Bug #1: Chat list reordering after sending message', () => {
+    it('should reorder chat list when lastMessageTime is updated', () => {
+      const store = useChatStore()
+      
+      const baseTime = Date.now()
+      vi.setSystemTime(baseTime)
+      
+      store.data.forEach((chat, index) => {
+        chat.lastMessageTime = baseTime - (index + 1) * 3600000
+        chat.isPinned = false
+      })
+      
+      const middleChat = store.data[5]
+      const middleChatId = middleChat.id!
+      
+      const initialPosition = store.filteredData.findIndex(c => c.id === middleChatId)
+      expect(initialPosition).toBe(5)
+      
+      vi.setSystemTime(baseTime + 1000)
+      store.updateLastMessage(middleChatId, 'New message')
+      
+      const newPosition = store.filteredData.findIndex(c => c.id === middleChatId)
+      expect(newPosition).toBe(0)
+    })
+
+    it('should move chat to top of unpinned section when message is sent', () => {
+      const store = useChatStore()
+      
+      const baseTime = Date.now()
+      vi.setSystemTime(baseTime)
+      
+      store.data[0].isPinned = true
+      store.data[0].pinnedAt = baseTime
+      store.data[1].isPinned = true
+      store.data[1].pinnedAt = baseTime - 1000
+      
+      store.data.forEach((chat, index) => {
+        if (!chat.isPinned) {
+          chat.lastMessageTime = baseTime - index * 3600000
+        }
+      })
+      
+      const unpinnedChat = store.data[5]
+      const unpinnedChatId = unpinnedChat.id!
+      
+      vi.setSystemTime(baseTime + 2000)
+      store.updateLastMessage(unpinnedChatId, 'Test message')
+      
+      const sorted = store.filteredData
+      const pinnedCount = sorted.filter(c => c.isPinned).length
+      
+      const newPosition = sorted.findIndex(c => c.id === unpinnedChatId)
+      expect(newPosition).toBe(pinnedCount)
+    })
+  })
+
+  describe('Bug #2: Search results should persist after selecting chat', () => {
+    it('should preserve search keyword when selecting chat by default', () => {
+      const store = useChatStore()
+      
+      store.setSearchKeyword('聊天对象')
+      expect(store.searchKeyword).toBe('聊天对象')
+      
+      const chatToSelect = store.data[0]
+      store.selectItem(chatToSelect)
+      
+      expect(store.searchKeyword).toBe('聊天对象')
+      expect(store.searchStats.isSearching).toBe(true)
+    })
+
+    it('should clear search keyword only when clearSearch is explicitly true', () => {
+      const store = useChatStore()
+      
+      store.setSearchKeyword('测试搜索')
+      expect(store.searchKeyword).toBe('测试搜索')
+      
+      const chatToSelect = store.data[0]
+      store.selectItem(chatToSelect, { clearSearch: true })
+      
+      expect(store.searchKeyword).toBe('')
+      expect(store.searchStats.isSearching).toBe(false)
+    })
+
+    it('should allow browsing multiple search results', () => {
+      const store = useChatStore()
+      
+      store.data[0].fromName = '项目组A'
+      store.data[1].fromName = '项目组B'
+      store.data[2].fromName = '项目组C'
+      
+      store.setSearchKeyword('项目')
+      expect(store.filteredData.length).toBe(3)
+      
+      store.selectItem(store.data[0])
+      expect(store.searchKeyword).toBe('项目')
+      expect(store.filteredData.length).toBe(3)
+      
+      store.selectItem(store.data[1])
+      expect(store.searchKeyword).toBe('项目')
+      expect(store.filteredData.length).toBe(3)
     })
   })
 })
