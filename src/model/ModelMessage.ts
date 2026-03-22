@@ -15,4 +15,7 @@ export class ModelMessage extends ModelBase {
     avatar?: string;
     isInMsg?: boolean;
     reference?: MessageReference;
+    isEdited?: boolean;
+    editedTime?: number;
+    isRecalled?: boolean;
 }

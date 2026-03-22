@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useMessageStore } from '../useMessageStore'
+import { truncateContent } from '../../utils/messageUtils'
 import { ModelChat } from '../../../model/ModelChat'
 import { ModelMessage } from '../../../model/ModelMessage'
 
@@ -194,20 +195,17 @@ describe('useMessageStore', () => {
 
   describe('truncateContent utility', () => {
     it('should return empty string for empty content', () => {
-      const store = useMessageStore()
-      expect(store.truncateContent('', 50)).toBe('')
+      expect(truncateContent('', 50)).toBe('')
     })
 
     it('should not truncate short content', () => {
-      const store = useMessageStore()
       const shortContent = 'Short message'
-      expect(store.truncateContent(shortContent, 50)).toBe(shortContent)
+      expect(truncateContent(shortContent, 50)).toBe(shortContent)
     })
 
     it('should truncate long content and add ellipsis', () => {
-      const store = useMessageStore()
       const longContent = 'This is a very long message that needs to be truncated'
-      const result = store.truncateContent(longContent, 20)
+      const result = truncateContent(longContent, 20)
       expect(result.length).toBe(23)
       expect(result.endsWith('...')).toBe(true)
     })
