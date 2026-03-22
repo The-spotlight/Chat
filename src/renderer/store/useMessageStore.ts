@@ -1,6 +1,6 @@
 import {defineStore} from "pinia";
 import {ModelChat} from "../../model/ModelChat";
-import {ref} from "vue";
+import {ref, computed} from "vue";
 import {ModelMessage, MessageReference} from "../../model/ModelMessage";
 import { canOperateMessage, isWithinTimeLimit, truncateContent } from '../utils/messageUtils';
 
@@ -9,6 +9,7 @@ export const useMessageStore = defineStore('message', () => {
         let currentChat = ref<ModelChat | null>(null);
         let referencedMessage = ref<ModelMessage | null>(null);
         let highlightedMessageId = ref<string | null>(null);
+        let pendingUnreadCount = ref(0);
         
         let msg1 = `醉里挑灯看剑，梦回吹角连营。八百里分麾下灸，五十弦翻塞外声。沙场秋点兵。马作的卢飞快，弓如霹雳弦惊。了却君王天下事，嬴得生前身后名。可怜白发生`;
         let msg2 = `怒发冲冠，凭栏处，潇潇雨歇。抬望眼，仰天长啸，壮怀激烈。 三十功名尘与土，八千里路云和月。莫等闲，白了少年头，空悲切！ 靖康耻，犹未雪；臣子恨，何时灭?驾长车，踏破贺兰山缺！ 壮志饥餐胡虏肉，笑谈渴饮匈奴血。待从头，收拾旧山河，朝天阙！`;
@@ -16,6 +17,7 @@ export const useMessageStore = defineStore('message', () => {
         let initData = (chat: ModelChat) => {
             currentChat.value = chat;
             referencedMessage.value = null;
+            pendingUnreadCount.value = chat.unreadCount || 0;
             let result = [];
             for (let i = 0; i < 10; i++) {
                 let model = new ModelMessage();
@@ -106,6 +108,14 @@ export const useMessageStore = defineStore('message', () => {
             return data.value.find(m => m.id === messageId);
         };
 
+        let clearPendingUnread = () => {
+            pendingUnreadCount.value = 0;
+        };
+
+        let hasPendingUnread = computed(() => {
+            return pendingUnreadCount.value > 0;
+        });
+
         return {
             data, 
             initData, 
@@ -118,12 +128,13 @@ export const useMessageStore = defineStore('message', () => {
             setHighlightedMessageId,
             recallMessage,
             editMessage,
-            getMessageById
+            getMessageById,
+            pendingUnreadCount,
+            clearPendingUnread,
+            hasPendingUnread
         };
     },
     {
         persist: true,
     }
 )
-
-
