@@ -114,8 +114,12 @@ const handleCopyAction = () => {
   }
 };
 
+const handleQuoteAction = () => {
+  messageStore.setReferencedMessage(props.data);
+};
+
 const handleMouseEnter = () => {
-  if (!props.data.isRecalled && !props.data.isInMsg) {
+  if (!props.data.isRecalled) {
     showActions.value = true;
   }
 };
@@ -131,6 +135,8 @@ const handleMouseLeave = () => {
       class="messageItem left"
       :class="{ highlighted: isHighlighted }"
       @contextmenu="handleContextMenu"
+      @mouseenter="handleMouseEnter"
+      @mouseleave="handleMouseLeave"
     >
       <div class="avatar">
         <img :src="data?.avatar" alt=""/>
@@ -158,6 +164,25 @@ const handleMouseLeave = () => {
           <span class="message-time">{{ formatTime(data?.createTime) }}</span>
         </div>
       </div>
+      <transition name="fade">
+        <div v-if="showActions && !data?.isRecalled && !isEditing" class="action-buttons left-actions">
+          <div class="dropdown">
+            <button class="action-btn more-btn" @click.stop>
+              <span class="icon">⋮</span>
+            </button>
+            <div class="dropdown-menu">
+              <div class="dropdown-item" @click="handleQuoteAction">
+                <span class="dropdown-icon">↩</span>
+                <span>引用</span>
+              </div>
+              <div class="dropdown-item" @click="handleCopyAction">
+                <span class="dropdown-icon">📋</span>
+                <span>复制</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
     </div>
   </template>
   <template v-else>
@@ -217,6 +242,10 @@ const handleMouseLeave = () => {
               <span class="icon">⋮</span>
             </button>
             <div class="dropdown-menu">
+              <div class="dropdown-item" @click="handleQuoteAction">
+                <span class="dropdown-icon">↩</span>
+                <span>引用</span>
+              </div>
               <div v-if="canOperate" class="dropdown-item" @click="startEdit">
                 <span class="dropdown-icon">✏️</span>
                 <span>编辑</span>
@@ -471,11 +500,21 @@ const handleMouseLeave = () => {
 
 .action-buttons {
   position: absolute;
-  top: -16px;
+  top: 8px;
   right: 70px;
   display: flex;
   gap: 4px;
   z-index: 10;
+}
+
+.left-actions {
+  right: auto;
+  left: 70px;
+  
+  .dropdown-menu {
+    right: auto;
+    left: 0;
+  }
 }
 
 .action-btn {
@@ -524,6 +563,14 @@ const handleMouseLeave = () => {
   padding: 6px 0;
   min-width: 120px;
   z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+}
+
+.dropdown:hover .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
 }
 
 .dropdown-item {

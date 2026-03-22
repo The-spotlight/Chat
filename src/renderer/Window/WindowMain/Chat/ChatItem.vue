@@ -12,7 +12,7 @@ const contextMenuX = ref(0);
 const contextMenuY = ref(0);
 
 const itemClick = (item: ModelChat) => {
-  store.selectItem(item);
+  store.selectItem(item, { clearSearch: false });
 }
 
 const handleContextMenu = (event: MouseEvent) => {

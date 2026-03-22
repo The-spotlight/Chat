@@ -316,4 +316,87 @@ describe('MessageItem', () => {
       expect(keydownHandler).toHaveBeenCalled()
     })
   })
+
+  describe('Bug #3: Received message should show action buttons on hover', () => {
+    it('should show action buttons on mouse enter for incoming messages', async () => {
+      const message = createMessage(true, 'Incoming message')
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      expect(wrapper.find('.action-buttons').exists()).toBe(false)
+
+      await wrapper.find('.messageItem.left').trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('.action-buttons').exists()).toBe(true)
+    })
+
+    it('should hide action buttons on mouse leave for incoming messages', async () => {
+      const message = createMessage(true, 'Incoming message')
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      await wrapper.find('.messageItem.left').trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('.action-buttons').exists()).toBe(true)
+
+      await wrapper.find('.messageItem.left').trigger('mouseleave')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('.action-buttons').exists()).toBe(false)
+    })
+
+    it('should only show quote and copy buttons for incoming messages', async () => {
+      const message = createMessage(true, 'Incoming message')
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      await wrapper.find('.messageItem.left').trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+
+      const dropdownItems = wrapper.findAll('.dropdown-item')
+      expect(dropdownItems.length).toBe(2)
+      expect(dropdownItems[0].text()).toContain('引用')
+      expect(dropdownItems[1].text()).toContain('复制')
+    })
+
+    it('should show all action buttons for outgoing messages', async () => {
+      const message = createMessage(false, 'Outgoing message')
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      await wrapper.find('.messageItem.right').trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+
+      const dropdownItems = wrapper.findAll('.dropdown-item')
+      expect(dropdownItems.length).toBe(4)
+      expect(dropdownItems[0].text()).toContain('引用')
+      expect(dropdownItems[1].text()).toContain('编辑')
+      expect(dropdownItems[2].text()).toContain('撤回')
+      expect(dropdownItems[3].text()).toContain('复制')
+    })
+
+    it('should not show action buttons for recalled messages', async () => {
+      const message = createMessage(true, 'Recalled message')
+      message.isRecalled = true
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      await wrapper.find('.messageItem.left').trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('.action-buttons').exists()).toBe(false)
+    })
+  })
 })
