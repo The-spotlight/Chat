@@ -299,6 +299,7 @@ describe('MessageInput', () => {
       const messageStore = useMessageStore()
       
       const selectedChat = chatStore.data[0]
+      const chatId = selectedChat.id!
       const originalLastMsg = selectedChat.lastMsg
       chatStore.selectItem(selectedChat)
       
@@ -308,9 +309,10 @@ describe('MessageInput', () => {
       const sendBtn = wrapper.find('.send-btn')
       await sendBtn.trigger('click')
       
-      expect(selectedChat.lastMsg).toBe('New message content')
-      expect(selectedChat.lastMsg).not.toBe(originalLastMsg)
-      expect(selectedChat.sendTime).toBe('刚刚')
+      const updatedChat = chatStore.data.find(c => c.id === chatId)
+      expect(updatedChat?.lastMsg).toBe('New message content')
+      expect(updatedChat?.lastMsg).not.toBe(originalLastMsg)
+      expect(updatedChat?.sendTime).toBe('刚刚')
     })
 
     it('should not update last message when no chat is selected', async () => {

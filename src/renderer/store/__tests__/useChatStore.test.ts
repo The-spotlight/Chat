@@ -162,7 +162,7 @@ describe('useChatStore', () => {
   })
 
   describe('selectItem with search integration', () => {
-    it('should clear search keyword when selecting a chat', () => {
+    it('should NOT clear search keyword when selecting a chat by default (Bug #2 fix)', () => {
       const store = useChatStore()
       
       store.setSearchKeyword('聊天对象1')
@@ -171,7 +171,7 @@ describe('useChatStore', () => {
       const chatToSelect = store.data[0]
       store.selectItem(chatToSelect)
       
-      expect(store.searchKeyword).toBe('')
+      expect(store.searchKeyword).toBe('聊天对象1')
     })
 
     it('should initialize message store when selecting a chat', () => {
@@ -223,7 +223,7 @@ describe('useChatStore', () => {
       expect(store.searchKeyword).toBe('')
     })
 
-    it('should clear search keyword by default when no options provided', () => {
+    it('should NOT clear search keyword by default when no options provided (Bug #2 fix)', () => {
       const store = useChatStore()
       
       store.setSearchKeyword('聊天对象1')
@@ -231,7 +231,7 @@ describe('useChatStore', () => {
       const chatToSelect = store.data[0]
       store.selectItem(chatToSelect)
       
-      expect(store.searchKeyword).toBe('')
+      expect(store.searchKeyword).toBe('聊天对象1')
     })
   })
 
@@ -334,6 +334,31 @@ describe('useChatStore', () => {
       expect(pinnedChats[0].id).toBe(chat3.id)
       expect(pinnedChats[1].id).toBe(chat2.id)
       expect(pinnedChats[2].id).toBe(chat1.id)
+    })
+
+    it('Bug #1: should re-sort chats when lastMessageTime is updated', () => {
+      const store = useChatStore()
+      
+      store.data.forEach(chat => {
+        chat.isPinned = false
+        chat.pinnedAt = undefined
+      })
+      
+      const chat1 = store.data[0]
+      const chat2 = store.data[1]
+      
+      chat1.lastMessageTime = Date.now() - 10000
+      chat2.lastMessageTime = Date.now() - 5000
+      
+      let sorted = store.filteredData
+      expect(sorted[0].id).toBe(chat2.id)
+      expect(sorted[1].id).toBe(chat1.id)
+      
+      store.updateLastMessage(chat1.id!, 'New message')
+      
+      sorted = store.filteredData
+      expect(sorted[0].id).toBe(chat1.id)
+      expect(sorted[1].id).toBe(chat2.id)
     })
   })
 

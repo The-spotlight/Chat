@@ -155,7 +155,7 @@ describe('ChatItem', () => {
 
     await wrapper.find('.chatItem').trigger('click')
 
-    expect(selectSpy).toHaveBeenCalledWith(chat)
+    expect(selectSpy).toHaveBeenCalledWith(chat, { clearSearch: false })
   })
 
   it('should apply selected class when chat is selected', () => {
