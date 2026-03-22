@@ -3,12 +3,14 @@ import {ModelChat} from "../../model/ModelChat";
 import {ref} from "vue";
 import {ModelMessage, MessageReference} from "../../model/ModelMessage";
 import { canOperateMessage, isWithinTimeLimit, truncateContent } from '../utils/messageUtils';
+import { useChatStore } from "./useChatStore";
 
 export const useMessageStore = defineStore('message', () => {
         let data = ref<ModelMessage[]>([]);
         let currentChat = ref<ModelChat | null>(null);
         let referencedMessage = ref<ModelMessage | null>(null);
         let highlightedMessageId = ref<string | null>(null);
+        let firstUnreadMessageId = ref<string | null>(null);
         
         let msg1 = `醉里挑灯看剑，梦回吹角连营。八百里分麾下灸，五十弦翻塞外声。沙场秋点兵。马作的卢飞快，弓如霹雳弦惊。了却君王天下事，嬴得生前身后名。可怜白发生`;
         let msg2 = `怒发冲冠，凭栏处，潇潇雨歇。抬望眼，仰天长啸，壮怀激烈。 三十功名尘与土，八千里路云和月。莫等闲，白了少年头，空悲切！ 靖康耻，犹未雪；臣子恨，何时灭?驾长车，踏破贺兰山缺！ 壮志饥餐胡虏肉，笑谈渴饮匈奴血。待从头，收拾旧山河，朝天阙！`;
@@ -16,6 +18,7 @@ export const useMessageStore = defineStore('message', () => {
         let initData = (chat: ModelChat) => {
             currentChat.value = chat;
             referencedMessage.value = null;
+            firstUnreadMessageId.value = null;
             let result = [];
             for (let i = 0; i < 10; i++) {
                 let model = new ModelMessage();
@@ -71,6 +74,21 @@ export const useMessageStore = defineStore('message', () => {
             data.value.push(model);
         };
 
+        // 模拟接收新消息（用于测试未读计数）
+        let receiveMessage = (chatId: string, content: string) => {
+            const chatStore = useChatStore();
+            
+            // 如果不是当前会话，增加未读计数
+            if (!currentChat.value || currentChat.value.id !== chatId) {
+                chatStore.incrementUnread(chatId);
+            }
+            
+            // 如果是当前会话，记录第一条未读消息
+            if (currentChat.value && currentChat.value.id === chatId) {
+                // 这里可以添加消息到列表的逻辑
+            }
+        };
+
         let setHighlightedMessageId = (id: string | null) => {
             highlightedMessageId.value = id;
         };
@@ -106,6 +124,14 @@ export const useMessageStore = defineStore('message', () => {
             return data.value.find(m => m.id === messageId);
         };
 
+        // 滚动到第一条未读消息
+        let scrollToFirstUnread = () => {
+            if (firstUnreadMessageId.value) {
+                setHighlightedMessageId(firstUnreadMessageId.value);
+                firstUnreadMessageId.value = null;
+            }
+        };
+
         return {
             data, 
             initData, 
@@ -118,7 +144,10 @@ export const useMessageStore = defineStore('message', () => {
             setHighlightedMessageId,
             recallMessage,
             editMessage,
-            getMessageById
+            getMessageById,
+            receiveMessage,
+            scrollToFirstUnread,
+            firstUnreadMessageId
         };
     },
     {
