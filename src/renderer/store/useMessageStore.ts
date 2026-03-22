@@ -82,10 +82,11 @@ export const useMessageStore = defineStore('message', () => {
             model.isRecalled = false;
             
             if (referencedMessage.value) {
+                const refMsg = referencedMessage.value;
                 model.reference = {
-                    referencedMessageId: referencedMessage.value.id,
-                    referencedFromName: referencedMessage.value.fromName || '',
-                    referencedContent: truncateContent(referencedMessage.value.messageContent || '', 50)
+                    referencedMessageId: refMsg.id || '',
+                    referencedFromName: refMsg.fromName || '未知发送者',
+                    referencedContent: truncateContent(refMsg.messageContent || '', 50) || '空消息'
                 };
                 referencedMessage.value = null;
             }
@@ -101,13 +102,24 @@ export const useMessageStore = defineStore('message', () => {
             const message = data.value.find(m => m.id === messageId);
             if (!message || !canOperateMessage(message)) return false;
             
-            message.isRecalled = true;
-            message.messageContent = '';
-            
-            data.value.forEach(msg => {
-                if (msg.reference && msg.reference.referencedMessageId === messageId) {
-                    msg.reference.referencedContent = '消息已被撤回';
+            data.value = data.value.map(msg => {
+                if (msg.id === messageId) {
+                    return {
+                        ...msg,
+                        isRecalled: true,
+                        messageContent: ''
+                    };
                 }
+                if (msg.reference && msg.reference.referencedMessageId === messageId) {
+                    return {
+                        ...msg,
+                        reference: {
+                            ...msg.reference,
+                            referencedContent: '消息已被撤回'
+                        }
+                    };
+                }
+                return msg;
             });
             
             return true;

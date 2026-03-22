@@ -272,4 +272,82 @@ describe('MessageInput', () => {
       expect(lastMessage.reference?.referencedMessageId).toBe('ref-id')
     })
   })
+
+  describe('Bug #1 regression: update last message in chat list after sending', () => {
+    it('should call updateLastMessage with correct chat ID after sending', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      const messageStore = useMessageStore()
+      
+      const selectedChat = chatStore.data[0]
+      chatStore.selectItem(selectedChat)
+      
+      const updateLastMessageSpy = vi.spyOn(chatStore, 'updateLastMessage')
+      
+      const textarea = wrapper.find('textarea')
+      await textarea.setValue('Test message for bug #1')
+      
+      const sendBtn = wrapper.find('.send-btn')
+      await sendBtn.trigger('click')
+      
+      expect(updateLastMessageSpy).toHaveBeenCalledWith(selectedChat.id, 'Test message for bug #1')
+    })
+
+    it('should update chat list last message after sending', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      const messageStore = useMessageStore()
+      
+      const selectedChat = chatStore.data[0]
+      const originalLastMsg = selectedChat.lastMsg
+      chatStore.selectItem(selectedChat)
+      
+      const textarea = wrapper.find('textarea')
+      await textarea.setValue('New message content')
+      
+      const sendBtn = wrapper.find('.send-btn')
+      await sendBtn.trigger('click')
+      
+      expect(selectedChat.lastMsg).toBe('New message content')
+      expect(selectedChat.lastMsg).not.toBe(originalLastMsg)
+      expect(selectedChat.sendTime).toBe('刚刚')
+    })
+
+    it('should not update last message when no chat is selected', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      const messageStore = useMessageStore()
+      
+      chatStore.data.forEach(c => c.isSelected = false)
+      
+      const updateLastMessageSpy = vi.spyOn(chatStore, 'updateLastMessage')
+      
+      const textarea = wrapper.find('textarea')
+      await textarea.setValue('Test message')
+      
+      const sendBtn = wrapper.find('.send-btn')
+      await sendBtn.trigger('click')
+      
+      expect(updateLastMessageSpy).not.toHaveBeenCalled()
+    })
+
+    it('should update last message with correct content even with whitespace', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      const messageStore = useMessageStore()
+      
+      const selectedChat = chatStore.data[0]
+      chatStore.selectItem(selectedChat)
+      
+      const updateLastMessageSpy = vi.spyOn(chatStore, 'updateLastMessage')
+      
+      const textarea = wrapper.find('textarea')
+      await textarea.setValue('   Trimmed message   ')
+      
+      const sendBtn = wrapper.find('.send-btn')
+      await sendBtn.trigger('click')
+      
+      expect(updateLastMessageSpy).toHaveBeenCalledWith(selectedChat.id, 'Trimmed message')
+    })
+  })
 })
