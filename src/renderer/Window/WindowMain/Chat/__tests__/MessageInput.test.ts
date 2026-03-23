@@ -352,4 +352,83 @@ describe('MessageInput', () => {
       expect(updateLastMessageSpy).toHaveBeenCalledWith(selectedChat.id, 'Trimmed message')
     })
   })
+
+  describe('Bug #3 Regression: Input height should reset after sending message', () => {
+    it('should reset textarea height after sending message', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      const messageStore = useMessageStore()
+      
+      chatStore.selectItem(chatStore.data[0])
+      
+      const textarea = wrapper.find('textarea')
+      const textareaElement = textarea.element as HTMLTextAreaElement
+      
+      textareaElement.style.height = '100px'
+      await textarea.setValue('Multi\nline\nmessage\ncontent')
+      
+      const sendBtn = wrapper.find('.send-btn')
+      await sendBtn.trigger('click')
+      
+      await wrapper.vm.$nextTick()
+      await new Promise(resolve => setTimeout(resolve, 50))
+      
+      expect(textareaElement.value).toBe('')
+    })
+
+    it('should clear input content after sending with Enter key', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      const messageStore = useMessageStore()
+      
+      chatStore.selectItem(chatStore.data[0])
+      
+      const textarea = wrapper.find('textarea')
+      
+      await textarea.setValue('Message content')
+      
+      await textarea.trigger('keydown', { key: 'Enter', shiftKey: false })
+      
+      await wrapper.vm.$nextTick()
+      await new Promise(resolve => setTimeout(resolve, 50))
+      
+      expect(textarea.element.value).toBe('')
+    })
+
+    it('should not send when message is empty', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      const messageStore = useMessageStore()
+      
+      chatStore.selectItem(chatStore.data[0])
+      
+      const sendMessageSpy = vi.spyOn(messageStore, 'sendMessage')
+      
+      const textarea = wrapper.find('textarea')
+      await textarea.setValue('   ')
+      
+      const sendBtn = wrapper.find('.send-btn')
+      await sendBtn.trigger('click')
+      
+      expect(sendMessageSpy).not.toHaveBeenCalled()
+    })
+
+    it('should verify sendMessage is called with correct content', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      const messageStore = useMessageStore()
+      
+      chatStore.selectItem(chatStore.data[0])
+      
+      const sendMessageSpy = vi.spyOn(messageStore, 'sendMessage')
+      
+      const textarea = wrapper.find('textarea')
+      await textarea.setValue('Test message')
+      
+      const sendBtn = wrapper.find('.send-btn')
+      await sendBtn.trigger('click')
+      
+      expect(sendMessageSpy).toHaveBeenCalledWith('Test message')
+    })
+  })
 })

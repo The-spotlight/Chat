@@ -399,4 +399,56 @@ describe('MessageItem', () => {
       expect(wrapper.find('.action-buttons').exists()).toBe(false)
     })
   })
+
+  describe('Bug #1 Regression: Action buttons should remain visible when mouse moves from message to buttons', () => {
+    it('should keep action buttons visible when mouse is over messageItem', async () => {
+      const message = createMessage(true, 'Test message')
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      expect(wrapper.find('.action-buttons').exists()).toBe(false)
+
+      await wrapper.find('.messageItem').trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('.action-buttons').exists()).toBe(true)
+    })
+
+    it('should hide action buttons when mouse leaves messageItem', async () => {
+      const message = createMessage(true, 'Test message')
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      await wrapper.find('.messageItem').trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('.action-buttons').exists()).toBe(true)
+
+      await wrapper.find('.messageItem').trigger('mouseleave')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('.action-buttons').exists()).toBe(false)
+    })
+
+    it('should allow clicking dropdown items when mouse is over action-buttons', async () => {
+      const message = createMessage(false, 'Test message')
+      const messageStore = useMessageStore()
+      const setReferencedMessageSpy = vi.spyOn(messageStore, 'setReferencedMessage')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      await wrapper.find('.messageItem').trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+
+      const dropdown = wrapper.find('.dropdown')
+      expect(dropdown.exists()).toBe(true)
+
+      await dropdown.find('.dropdown-item').trigger('click')
+      expect(setReferencedMessageSpy).toHaveBeenCalledWith(message)
+    })
+  })
 })

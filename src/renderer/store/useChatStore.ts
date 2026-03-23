@@ -152,14 +152,19 @@ export const useChatStore = defineStore('chat', () => {
     };
 
     const togglePin = (chatId: string) => {
-        const chat = data.value.find(item => item.id === chatId);
-        if (chat) {
-            chat.isPinned = !chat.isPinned;
-            if (chat.isPinned) {
-                chat.pinnedAt = Date.now();
-            } else {
-                chat.pinnedAt = undefined;
-            }
+        const chatIndex = data.value.findIndex(item => item.id === chatId);
+        if (chatIndex !== -1) {
+            const chat = data.value[chatIndex];
+            const updatedChat = {
+                ...chat,
+                isPinned: !chat.isPinned,
+                pinnedAt: !chat.isPinned ? Date.now() : undefined
+            };
+            data.value = [
+                ...data.value.slice(0, chatIndex),
+                updatedChat,
+                ...data.value.slice(chatIndex + 1)
+            ];
         }
     };
 
