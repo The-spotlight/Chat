@@ -278,21 +278,23 @@ describe('useChatStore', () => {
   describe('Pin functionality', () => {
     it('should toggle pin status correctly', () => {
       const store = useChatStore()
-      const chat = store.data[0]
-      const chatId = chat.id!
+      const chatId = store.data[0].id!
       
+      const chat = store.data.find(c => c.id === chatId)!
       expect(chat.isPinned).toBe(false)
       expect(chat.pinnedAt).toBeUndefined()
       
       store.togglePin(chatId)
       
-      expect(chat.isPinned).toBe(true)
-      expect(chat.pinnedAt).toBeDefined()
+      const pinnedChat = store.data.find(c => c.id === chatId)!
+      expect(pinnedChat.isPinned).toBe(true)
+      expect(pinnedChat.pinnedAt).toBeDefined()
       
       store.togglePin(chatId)
       
-      expect(chat.isPinned).toBe(false)
-      expect(chat.pinnedAt).toBeUndefined()
+      const unpinnedChat = store.data.find(c => c.id === chatId)!
+      expect(unpinnedChat.isPinned).toBe(false)
+      expect(unpinnedChat.pinnedAt).toBeUndefined()
     })
 
     it('should sort pinned chats before unpinned ones', () => {
@@ -359,6 +361,74 @@ describe('useChatStore', () => {
       sorted = store.filteredData
       expect(sorted[0].id).toBe(chat1.id)
       expect(sorted[1].id).toBe(chat2.id)
+    })
+
+    it('Bug #2 regression: should re-sort chats correctly after unpinning', () => {
+      const store = useChatStore()
+      
+      store.data.forEach(chat => {
+        chat.isPinned = false
+        chat.pinnedAt = undefined
+      })
+      
+      const chat1 = store.data[0]
+      const chat2 = store.data[1]
+      const chat3 = store.data[2]
+      
+      const baseTime = Date.now()
+      chat1.lastMessageTime = baseTime - 3000
+      chat2.lastMessageTime = baseTime - 2000
+      chat3.lastMessageTime = baseTime - 1000
+      
+      vi.setSystemTime(baseTime)
+      store.togglePin(chat1.id!)
+      
+      let sorted = store.filteredData
+      expect(sorted[0].id).toBe(chat1.id)
+      expect(sorted[0].isPinned).toBe(true)
+      
+      vi.setSystemTime(baseTime + 1000)
+      store.togglePin(chat1.id!)
+      
+      sorted = store.filteredData
+      expect(sorted[0].id).toBe(chat3.id)
+      expect(sorted[0].isPinned).toBe(false)
+      
+      const chat1InSorted = sorted.find(c => c.id === chat1.id)
+      expect(chat1InSorted?.isPinned).toBe(false)
+      expect(chat1InSorted?.pinnedAt).toBeUndefined()
+      
+      const chat1Index = sorted.findIndex(c => c.id === chat1.id)
+      const chat3Index = sorted.findIndex(c => c.id === chat3.id)
+      expect(chat1Index).toBeGreaterThan(chat3Index)
+    })
+
+    it('Bug #2 regression: unpinning should trigger reactive update for filteredData', () => {
+      const store = useChatStore()
+      
+      store.data.forEach(chat => {
+        chat.isPinned = false
+        chat.pinnedAt = undefined
+      })
+      
+      const chat1 = store.data[0]
+      const baseTime = Date.now()
+      chat1.lastMessageTime = baseTime - 1000
+      
+      vi.setSystemTime(baseTime)
+      store.togglePin(chat1.id!)
+      
+      const sortedAfterPin = [...store.filteredData]
+      expect(sortedAfterPin[0].id).toBe(chat1.id)
+      expect(sortedAfterPin[0].isPinned).toBe(true)
+      
+      vi.setSystemTime(baseTime + 1000)
+      store.togglePin(chat1.id!)
+      
+      const sortedAfterUnpin = store.filteredData
+      const chat1AfterUnpin = sortedAfterUnpin.find(c => c.id === chat1.id)
+      expect(chat1AfterUnpin?.isPinned).toBe(false)
+      expect(chat1AfterUnpin?.pinnedAt).toBeUndefined()
     })
   })
 

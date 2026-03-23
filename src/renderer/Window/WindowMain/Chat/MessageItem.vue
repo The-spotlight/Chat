@@ -21,7 +21,6 @@ const contextMenuX = ref(0);
 const contextMenuY = ref(0);
 const isEditing = ref(false);
 const editContent = ref('');
-const showActions = ref(false);
 
 const canOperate = computed(() => {
   return canOperateMessage(props.data);
@@ -118,15 +117,7 @@ const handleQuoteAction = () => {
   messageStore.setReferencedMessage(props.data);
 };
 
-const handleMouseEnter = () => {
-  if (!props.data.isRecalled) {
-    showActions.value = true;
-  }
-};
 
-const handleMouseLeave = () => {
-  showActions.value = false;
-};
 </script>
 
 <template>
@@ -135,8 +126,6 @@ const handleMouseLeave = () => {
       class="messageItem left"
       :class="{ highlighted: isHighlighted }"
       @contextmenu="handleContextMenu"
-      @mouseenter="handleMouseEnter"
-      @mouseleave="handleMouseLeave"
     >
       <div class="avatar">
         <img :src="data?.avatar" alt=""/>
@@ -165,7 +154,7 @@ const handleMouseLeave = () => {
         </div>
       </div>
       <transition name="fade">
-        <div v-if="showActions && !data?.isRecalled && !isEditing" class="action-buttons left-actions">
+        <div v-if="!data?.isRecalled && !isEditing" class="action-buttons left-actions">
           <div class="dropdown">
             <button class="action-btn more-btn" @click.stop>
               <span class="icon">⋮</span>
@@ -190,8 +179,6 @@ const handleMouseLeave = () => {
       class="messageItem right"
       :class="{ highlighted: isHighlighted }"
       @contextmenu="handleContextMenu"
-      @mouseenter="handleMouseEnter"
-      @mouseleave="handleMouseLeave"
     >
       <div class="msgBox">
         <div class="msgContent">
@@ -236,7 +223,7 @@ const handleMouseLeave = () => {
         <img :src="data?.avatar" alt=""/>
       </div>
       <transition name="fade">
-        <div v-if="showActions && !data?.isRecalled && !isEditing" class="action-buttons">
+        <div v-if="!data?.isRecalled && !isEditing" class="action-buttons">
           <div class="dropdown">
             <button class="action-btn more-btn" @click.stop>
               <span class="icon">⋮</span>
@@ -505,6 +492,14 @@ const handleMouseLeave = () => {
   display: flex;
   gap: 4px;
   z-index: 10;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.messageItem:hover .action-buttons {
+  opacity: 1;
+  visibility: visible;
 }
 
 .left-actions {

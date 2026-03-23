@@ -352,4 +352,59 @@ describe('MessageInput', () => {
       expect(updateLastMessageSpy).toHaveBeenCalledWith(selectedChat.id, 'Trimmed message')
     })
   })
+
+  describe('Bug #3 regression: input height should reset after sending message', () => {
+    it('should reset textarea height after sending message', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      chatStore.selectItem(chatStore.data[0])
+      
+      const textarea = wrapper.find('textarea')
+      
+      textarea.element.style.height = '100px'
+      expect(textarea.element.style.height).toBe('100px')
+      
+      await textarea.setValue('Test message')
+      const sendBtn = wrapper.find('.send-btn')
+      await sendBtn.trigger('click')
+      await wrapper.vm.$nextTick()
+      
+      expect(['auto', '0px', '']).toContain(textarea.element.style.height)
+    })
+
+    it('should reset textarea height after sending multiline message', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      chatStore.selectItem(chatStore.data[0])
+      
+      const textarea = wrapper.find('textarea')
+      
+      const multilineContent = 'Line 1\nLine 2\nLine 3\nLine 4\nLine 5'
+      await textarea.setValue(multilineContent)
+      
+      textarea.element.style.height = '80px'
+      expect(textarea.element.style.height).toBe('80px')
+      
+      const sendBtn = wrapper.find('.send-btn')
+      await sendBtn.trigger('click')
+      await wrapper.vm.$nextTick()
+      
+      expect(['auto', '0px', '']).toContain(textarea.element.style.height)
+    })
+
+    it('should clear input content after sending', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      chatStore.selectItem(chatStore.data[0])
+      
+      const textarea = wrapper.find('textarea')
+      await textarea.setValue('Message to send')
+      
+      const sendBtn = wrapper.find('.send-btn')
+      await sendBtn.trigger('click')
+      await wrapper.vm.$nextTick()
+      
+      expect(textarea.element.value).toBe('')
+    })
+  })
 })
