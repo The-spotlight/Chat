@@ -30,7 +30,16 @@ const sendMessage = () => {
   messageStore.sendMessage(content);
 
   inputContent.value = "";
+  resetInputHeight();
   focusInput();
+};
+
+const resetInputHeight = () => {
+  nextTick(() => {
+    if (inputRef.value) {
+      inputRef.value.style.height = "auto";
+    }
+  });
 };
 
 const handleKeydown = (e: KeyboardEvent) => {
