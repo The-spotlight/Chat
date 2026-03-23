@@ -345,6 +345,8 @@ describe('MessageItem', () => {
       expect(wrapper.find('.action-buttons').exists()).toBe(true)
 
       await wrapper.find('.messageItem.left').trigger('mouseleave')
+      // Wait for the 200ms delay
+      await new Promise(resolve => setTimeout(resolve, 300))
       await wrapper.vm.$nextTick()
 
       expect(wrapper.find('.action-buttons').exists()).toBe(false)
@@ -396,6 +398,68 @@ describe('MessageItem', () => {
       await wrapper.find('.messageItem.left').trigger('mouseenter')
       await wrapper.vm.$nextTick()
 
+      expect(wrapper.find('.action-buttons').exists()).toBe(false)
+    })
+  })
+
+  describe('Bug #1: Action buttons disappear when mouse moves to them', () => {
+    it('should keep action buttons visible when mouse moves to buttons area', async () => {
+      const message = createMessage(false, 'Outgoing message')
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      // First, hover on message to show action buttons
+      await wrapper.find('.messageItem.right').trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('.action-buttons').exists()).toBe(true)
+
+      // Then move mouse to action buttons area
+      const actionButtons = wrapper.find('.action-buttons')
+      await actionButtons.trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+
+      // Buttons should still be visible
+      expect(wrapper.find('.action-buttons').exists()).toBe(true)
+
+      // Move mouse away from both message and buttons
+      await actionButtons.trigger('mouseleave')
+      // Wait for the 200ms delay
+      await new Promise(resolve => setTimeout(resolve, 300))
+      await wrapper.vm.$nextTick()
+
+      // Buttons should be hidden
+      expect(wrapper.find('.action-buttons').exists()).toBe(false)
+    })
+
+    it('should keep action buttons visible for incoming messages when mouse moves to buttons', async () => {
+      const message = createMessage(true, 'Incoming message')
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      // First, hover on message to show action buttons
+      await wrapper.find('.messageItem.left').trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('.action-buttons').exists()).toBe(true)
+
+      // Then move mouse to action buttons area
+      const actionButtons = wrapper.find('.action-buttons')
+      await actionButtons.trigger('mouseenter')
+      await wrapper.vm.$nextTick()
+
+      // Buttons should still be visible
+      expect(wrapper.find('.action-buttons').exists()).toBe(true)
+
+      // Move mouse away from both message and buttons
+      await actionButtons.trigger('mouseleave')
+      // Wait for the 200ms delay
+      await new Promise(resolve => setTimeout(resolve, 300))
+      await wrapper.vm.$nextTick()
+
+      // Buttons should be hidden
       expect(wrapper.find('.action-buttons').exists()).toBe(false)
     })
   })

@@ -118,14 +118,22 @@ const handleQuoteAction = () => {
   messageStore.setReferencedMessage(props.data);
 };
 
+let mouseLeaveTimer: number | null = null;
+
 const handleMouseEnter = () => {
+  if (mouseLeaveTimer) {
+    clearTimeout(mouseLeaveTimer);
+    mouseLeaveTimer = null;
+  }
   if (!props.data.isRecalled) {
     showActions.value = true;
   }
 };
 
 const handleMouseLeave = () => {
-  showActions.value = false;
+  mouseLeaveTimer = window.setTimeout(() => {
+    showActions.value = false;
+  }, 200);
 };
 </script>
 
@@ -165,24 +173,26 @@ const handleMouseLeave = () => {
         </div>
       </div>
       <transition name="fade">
-        <div v-if="showActions && !data?.isRecalled && !isEditing" class="action-buttons left-actions">
-          <div class="dropdown">
-            <button class="action-btn more-btn" @click.stop>
-              <span class="icon">⋮</span>
-            </button>
-            <div class="dropdown-menu">
-              <div class="dropdown-item" @click="handleQuoteAction">
-                <span class="dropdown-icon">↩</span>
-                <span>引用</span>
-              </div>
-              <div class="dropdown-item" @click="handleCopyAction">
-                <span class="dropdown-icon">📋</span>
-                <span>复制</span>
+          <div v-if="showActions && !data?.isRecalled && !isEditing" class="action-buttons left-actions"
+               @mouseenter="handleMouseEnter"
+               @mouseleave="handleMouseLeave">
+            <div class="dropdown">
+              <button class="action-btn more-btn" @click.stop>
+                <span class="icon">⋮</span>
+              </button>
+              <div class="dropdown-menu">
+                <div class="dropdown-item" @click="handleQuoteAction">
+                  <span class="dropdown-icon">↩</span>
+                  <span>引用</span>
+                </div>
+                <div class="dropdown-item" @click="handleCopyAction">
+                  <span class="dropdown-icon">📋</span>
+                  <span>复制</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </transition>
+        </transition>
     </div>
   </template>
   <template v-else>
@@ -236,7 +246,9 @@ const handleMouseLeave = () => {
         <img :src="data?.avatar" alt=""/>
       </div>
       <transition name="fade">
-        <div v-if="showActions && !data?.isRecalled && !isEditing" class="action-buttons">
+        <div v-if="showActions && !data?.isRecalled && !isEditing" class="action-buttons"
+             @mouseenter="handleMouseEnter"
+             @mouseleave="handleMouseLeave">
           <div class="dropdown">
             <button class="action-btn more-btn" @click.stop>
               <span class="icon">⋮</span>
