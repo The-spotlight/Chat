@@ -30,6 +30,7 @@ const sendMessage = () => {
   messageStore.sendMessage(content);
 
   inputContent.value = "";
+  autoResize();
   focusInput();
 };
 

@@ -352,4 +352,30 @@ describe('MessageInput', () => {
       expect(updateLastMessageSpy).toHaveBeenCalledWith(selectedChat.id, 'Trimmed message')
     })
   })
+
+  describe('Bug #3 regression: input height should reset after sending message', () => {
+    it('should reset input to empty state after sending message', async () => {
+      const wrapper = mount(MessageInput)
+      const chatStore = useChatStore()
+      
+      chatStore.selectItem(chatStore.data[0])
+      
+      const textarea = wrapper.find('textarea')
+      
+      // Enter multi-line text
+      await textarea.setValue('Line 1\nLine 2\nLine 3')
+      await wrapper.vm.$nextTick()
+      
+      // Verify input has content
+      expect(textarea.element.value).toBe('Line 1\nLine 2\nLine 3')
+      
+      // Send the message
+      const sendBtn = wrapper.find('.send-btn')
+      await sendBtn.trigger('click')
+      await wrapper.vm.$nextTick()
+      
+      // Check that input is empty
+      expect(textarea.element.value).toBe('')
+    })
+  })
 })

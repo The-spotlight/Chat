@@ -281,18 +281,21 @@ describe('useChatStore', () => {
       const chat = store.data[0]
       const chatId = chat.id!
       
-      expect(chat.isPinned).toBe(false)
-      expect(chat.pinnedAt).toBeUndefined()
+      let updatedChat = store.data.find(c => c.id === chatId)
+      expect(updatedChat?.isPinned).toBe(false)
+      expect(updatedChat?.pinnedAt).toBeUndefined()
       
       store.togglePin(chatId)
       
-      expect(chat.isPinned).toBe(true)
-      expect(chat.pinnedAt).toBeDefined()
+      updatedChat = store.data.find(c => c.id === chatId)
+      expect(updatedChat?.isPinned).toBe(true)
+      expect(updatedChat?.pinnedAt).toBeDefined()
       
       store.togglePin(chatId)
       
-      expect(chat.isPinned).toBe(false)
-      expect(chat.pinnedAt).toBeUndefined()
+      updatedChat = store.data.find(c => c.id === chatId)
+      expect(updatedChat?.isPinned).toBe(false)
+      expect(updatedChat?.pinnedAt).toBeUndefined()
     })
 
     it('should sort pinned chats before unpinned ones', () => {
@@ -359,6 +362,44 @@ describe('useChatStore', () => {
       sorted = store.filteredData
       expect(sorted[0].id).toBe(chat1.id)
       expect(sorted[1].id).toBe(chat2.id)
+    })
+
+    it('Bug #2: should re-sort chats when unpinning a chat', () => {
+      const store = useChatStore()
+      
+      // Reset all chats to unpinned
+      store.data.forEach(chat => {
+        chat.isPinned = false
+        chat.pinnedAt = undefined
+      })
+      
+      // Create test chats with different lastMessageTime
+      const chat1 = store.data[0]
+      const chat2 = store.data[1]
+      const chat3 = store.data[2]
+      
+      // Set different lastMessageTime values
+      chat1.lastMessageTime = Date.now() - 10000 // Oldest
+      chat2.lastMessageTime = Date.now() - 5000  // Middle
+      chat3.lastMessageTime = Date.now()          // Newest
+      
+      // Pin chat1 (the oldest one)
+      store.togglePin(chat1.id!)
+      
+      // Check that pinned chat is first
+      let sorted = store.filteredData
+      expect(sorted[0].id).toBe(chat1.id) // Pinned chat first
+      expect(sorted[1].id).toBe(chat3.id) // Newest unpinned next
+      expect(sorted[2].id).toBe(chat2.id) // Oldest unpinned last
+      
+      // Unpin chat1
+      store.togglePin(chat1.id!)
+      
+      // Check that chats are now sorted by lastMessageTime
+      sorted = store.filteredData
+      expect(sorted[0].id).toBe(chat3.id) // Newest first
+      expect(sorted[1].id).toBe(chat2.id) // Middle next
+      expect(sorted[2].id).toBe(chat1.id) // Oldest last
     })
   })
 
