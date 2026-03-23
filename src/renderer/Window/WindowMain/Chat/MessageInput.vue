@@ -30,6 +30,11 @@ const sendMessage = () => {
   messageStore.sendMessage(content);
 
   inputContent.value = "";
+  
+  if (inputRef.value) {
+    inputRef.value.style.height = "auto";
+  }
+  
   focusInput();
 };
 
