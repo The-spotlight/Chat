@@ -10,7 +10,10 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-const truncatedContent = computed(() => {
+const displayContent = computed(() => {
+  if (props.message.isRecalled) {
+    return '消息已被撤回';
+  }
   const content = props.message.messageContent || '';
   if (content.length <= 30) return content;
   return content.slice(0, 30) + '...';
@@ -26,7 +29,7 @@ const handleClose = () => {
     <div class="reference-indicator"></div>
     <div class="reference-content">
       <span class="reference-name">{{ message.fromName }}</span>
-      <span class="reference-text">{{ truncatedContent }}</span>
+      <span class="reference-text" :class="{ 'recalled-text': message.isRecalled }">{{ displayContent }}</span>
     </div>
     <button class="close-btn" @click="handleClose" aria-label="关闭引用">×</button>
   </div>
@@ -74,6 +77,11 @@ const handleClose = () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.recalled-text {
+  font-style: italic;
+  color: #bbb;
 }
 
 .close-btn {

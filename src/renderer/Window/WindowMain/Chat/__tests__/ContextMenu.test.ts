@@ -1,9 +1,16 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import ContextMenu from '../ContextMenu.vue'
+import ContextMenu, { ContextMenuItem } from '../ContextMenu.vue'
 
 describe('ContextMenu', () => {
+  const testItems: ContextMenuItem[] = [
+    { id: 'quote', label: '引用', icon: '↩' },
+    { id: 'copy', label: '复制', icon: '📋' },
+    { id: 'divider', label: '', divider: true },
+    { id: 'edit', label: '编辑', icon: '✏️' },
+  ]
+
   beforeEach(() => {
     setActivePinia(createPinia())
     document.body.innerHTML = ''
@@ -18,7 +25,8 @@ describe('ContextMenu', () => {
       props: {
         visible: false,
         x: 100,
-        y: 100
+        y: 100,
+        items: testItems
       },
       attachTo: document.body
     })
@@ -26,12 +34,27 @@ describe('ContextMenu', () => {
     expect(document.querySelector('.context-menu')).toBeNull()
   })
 
-  it('should render when visible is true', () => {
+  it('should not render when items is empty', () => {
     mount(ContextMenu, {
       props: {
         visible: true,
         x: 100,
-        y: 100
+        y: 100,
+        items: []
+      },
+      attachTo: document.body
+    })
+
+    expect(document.querySelector('.context-menu')).toBeNull()
+  })
+
+  it('should render when visible is true and items are provided', () => {
+    mount(ContextMenu, {
+      props: {
+        visible: true,
+        x: 100,
+        y: 100,
+        items: testItems
       },
       attachTo: document.body
     })
@@ -44,7 +67,8 @@ describe('ContextMenu', () => {
       props: {
         visible: true,
         x: 200,
-        y: 150
+        y: 150,
+        items: testItems
       },
       attachTo: document.body
     })
@@ -55,35 +79,56 @@ describe('ContextMenu', () => {
     expect(menu.style.top).toBe('150px')
   })
 
-  it('should display "引用" menu item', () => {
+  it('should display menu items correctly', () => {
     mount(ContextMenu, {
       props: {
         visible: true,
         x: 100,
-        y: 100
+        y: 100,
+        items: testItems
       },
       attachTo: document.body
     })
 
-    const menuItem = document.querySelector('.menu-item')
-    expect(menuItem?.textContent).toContain('引用')
+    const menuItems = document.querySelectorAll('.menu-item')
+    expect(menuItems.length).toBe(3)
+    expect(menuItems[0]?.textContent).toContain('引用')
+    expect(menuItems[1]?.textContent).toContain('复制')
+    expect(menuItems[2]?.textContent).toContain('编辑')
   })
 
-  it('should emit select event when menu item is clicked', async () => {
+  it('should render dividers correctly', () => {
+    mount(ContextMenu, {
+      props: {
+        visible: true,
+        x: 100,
+        y: 100,
+        items: testItems
+      },
+      attachTo: document.body
+    })
+
+    const dividers = document.querySelectorAll('.menu-divider')
+    expect(dividers.length).toBe(1)
+  })
+
+  it('should emit click event with item id when menu item is clicked', async () => {
     const wrapper = mount(ContextMenu, {
       props: {
         visible: true,
         x: 100,
-        y: 100
+        y: 100,
+        items: testItems
       },
       attachTo: document.body
     })
 
-    const menuItem = document.querySelector('.menu-item') as HTMLElement
-    menuItem?.click()
+    const menuItems = document.querySelectorAll('.menu-item')
+    ;(menuItems[0] as HTMLElement)?.click()
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.emitted('select')).toBeTruthy()
+    expect(wrapper.emitted('click')).toBeTruthy()
+    expect(wrapper.emitted('click')?.[0]).toEqual(['quote'])
   })
 
   it('should emit close event when menu item is clicked', async () => {
@@ -91,16 +136,38 @@ describe('ContextMenu', () => {
       props: {
         visible: true,
         x: 100,
-        y: 100
+        y: 100,
+        items: testItems
       },
       attachTo: document.body
     })
 
-    const menuItem = document.querySelector('.menu-item') as HTMLElement
-    menuItem?.click()
+    const menuItems = document.querySelectorAll('.menu-item')
+    ;(menuItems[0] as HTMLElement)?.click()
     await wrapper.vm.$nextTick()
 
     expect(wrapper.emitted('close')).toBeTruthy()
+  })
+
+  it('should hide items with show: false', () => {
+    const itemsWithHidden: ContextMenuItem[] = [
+      { id: 'quote', label: '引用', icon: '↩' },
+      { id: 'edit', label: '编辑', icon: '✏️', show: false },
+    ]
+
+    mount(ContextMenu, {
+      props: {
+        visible: true,
+        x: 100,
+        y: 100,
+        items: itemsWithHidden
+      },
+      attachTo: document.body
+    })
+
+    const menuItems = document.querySelectorAll('.menu-item')
+    expect(menuItems.length).toBe(1)
+    expect(menuItems[0]?.textContent).toContain('引用')
   })
 
   it('should have white background with shadow', () => {
@@ -108,7 +175,8 @@ describe('ContextMenu', () => {
       props: {
         visible: true,
         x: 100,
-        y: 100
+        y: 100,
+        items: testItems
       },
       attachTo: document.body
     })
@@ -122,7 +190,8 @@ describe('ContextMenu', () => {
       props: {
         visible: true,
         x: 100,
-        y: 100
+        y: 100,
+        items: testItems
       },
       attachTo: document.body
     })

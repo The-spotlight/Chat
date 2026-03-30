@@ -2,6 +2,7 @@ import {defineStore} from "pinia";
 import {ModelChat} from "../../model/ModelChat";
 import {ref} from "vue";
 import {ModelMessage, MessageReference} from "../../model/ModelMessage";
+import { canOperateMessage, isWithinTimeLimit, truncateContent } from '../utils/messageUtils';
 
 export const useMessageStore = defineStore('message', () => {
         let data = ref<ModelMessage[]>([]);
@@ -24,6 +25,8 @@ export const useMessageStore = defineStore('message', () => {
                 model.fromName = model.isInMsg ? chat.fromName : "我";
                 model.avatar = chat.avatar;
                 model.chatId = chat.id;
+                model.isEdited = false;
+                model.isRecalled = false;
                 result.push(model);
             }
             data.value = result;
@@ -53,6 +56,8 @@ export const useMessageStore = defineStore('message', () => {
             model.fromName = "我";
             model.avatar = currentChat.value.avatar;
             model.chatId = currentChat.value.id;
+            model.isEdited = false;
+            model.isRecalled = false;
             
             if (referencedMessage.value) {
                 model.reference = {
@@ -70,6 +75,37 @@ export const useMessageStore = defineStore('message', () => {
             highlightedMessageId.value = id;
         };
 
+        let recallMessage = (messageId: string) => {
+            const message = data.value.find(m => m.id === messageId);
+            if (!message || !canOperateMessage(message)) return false;
+            
+            message.isRecalled = true;
+            message.messageContent = '';
+            
+            data.value.forEach(msg => {
+                if (msg.reference && msg.reference.referencedMessageId === messageId) {
+                    msg.reference.referencedContent = '消息已被撤回';
+                }
+            });
+            
+            return true;
+        };
+
+        let editMessage = (messageId: string, newContent: string) => {
+            const message = data.value.find(m => m.id === messageId);
+            if (!message || !canOperateMessage(message) || !newContent.trim()) return false;
+            
+            message.messageContent = newContent;
+            message.isEdited = true;
+            message.editedTime = Date.now();
+            
+            return true;
+        };
+
+        let getMessageById = (messageId: string): ModelMessage | undefined => {
+            return data.value.find(m => m.id === messageId);
+        };
+
         return {
             data, 
             initData, 
@@ -80,7 +116,9 @@ export const useMessageStore = defineStore('message', () => {
             clearReferencedMessage,
             highlightedMessageId,
             setHighlightedMessageId,
-            truncateContent
+            recallMessage,
+            editMessage,
+            getMessageById
         };
     },
     {

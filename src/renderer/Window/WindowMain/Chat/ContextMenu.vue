@@ -1,14 +1,23 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
+
+export interface ContextMenuItem {
+  id: string;
+  label: string;
+  icon?: string;
+  show?: boolean;
+  divider?: boolean;
+}
 
 const props = defineProps<{
   visible: boolean;
   x: number;
   y: number;
+  items: ContextMenuItem[];
 }>();
 
 const emit = defineEmits<{
-  (e: 'select'): void;
+  (e: 'click', itemId: string): void;
   (e: 'close'): void;
 }>();
 
@@ -26,10 +35,13 @@ const handleEscape = (event: KeyboardEvent) => {
   }
 };
 
-const handleSelect = () => {
-  emit('select');
+const handleItemClick = (item: ContextMenuItem) => {
+  if (item.divider) return;
+  emit('click', item.id);
   emit('close');
 };
+
+const visibleItems = ref<ContextMenuItem[]>([]);
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
@@ -45,15 +57,25 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <div
-      v-if="visible"
+      v-if="visible && items.length > 0"
       ref="menuRef"
       class="context-menu"
       :style="{ left: x + 'px', top: y + 'px' }"
     >
-      <div class="menu-item" @click="handleSelect">
-        <span class="menu-icon">↩</span>
-        <span>引用</span>
-      </div>
+      <template v-for="item in items" :key="item.id">
+        <div 
+          v-if="item.divider && (item.show !== false)" 
+          class="menu-divider"
+        ></div>
+        <div 
+          v-else-if="item.show !== false" 
+          class="menu-item" 
+          @click="handleItemClick(item)"
+        >
+          <span v-if="item.icon" class="menu-icon">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+        </div>
+      </template>
     </div>
   </Teleport>
 </template>
@@ -87,5 +109,11 @@ onUnmounted(() => {
 .menu-icon {
   font-size: 14px;
   color: #666;
+}
+
+.menu-divider {
+  height: 1px;
+  background: rgb(230, 230, 230);
+  margin: 4px 0;
 }
 </style>
