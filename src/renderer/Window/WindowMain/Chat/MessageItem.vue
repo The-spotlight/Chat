@@ -99,9 +99,20 @@ const cancelEdit = () => {
 
 const saveEdit = () => {
   if (!editContent.value.trim()) return;
-  messageStore.editMessage(props.data.id, editContent.value.trim());
+  const cleanedContent = editContent.value.replace(/[\n\r]/g, '').trim();
+  messageStore.editMessage(props.data.id, cleanedContent);
   isEditing.value = false;
   editContent.value = '';
+};
+
+const handleEditKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27) {
+    e.preventDefault();
+    cancelEdit();
+  } else if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    saveEdit();
+  }
 };
 
 const handleRecallAction = () => {
@@ -223,8 +234,7 @@ const handleMouseLeave = () => {
               <textarea 
                 :class="['edit-input', 'edit-input-' + data.id]"
                 v-model="editContent"
-                @keydown.enter.prevent="saveEdit"
-                @keydown.esc="cancelEdit"
+                @keydown="handleEditKeydown"
                 rows="1"
               ></textarea>
               <div class="edit-actions">
@@ -523,7 +533,8 @@ const handleMouseLeave = () => {
   right: auto;
   left: 70px;
   
-  .dropdown-menu {
+  .dropdown-menu,
+  .dropdown:hover .dropdown-menu {
     right: auto;
     left: 0;
   }

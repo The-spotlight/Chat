@@ -235,11 +235,48 @@ describe('MessageItem', () => {
       expect(textarea.exists()).toBe(true)
       
       await textarea.setValue('Edited content')
-      await textarea.trigger('keydown.enter', { key: 'Enter' })
+      
+      const event = new KeyboardEvent('keydown', { 
+        key: 'Enter', 
+        bubbles: true,
+        cancelable: true
+      })
+      textarea.element.dispatchEvent(event)
       await wrapper.vm.$nextTick()
 
       expect(editSpy).toHaveBeenCalledWith(message.id, 'Edited content')
       expect(editSpy).not.toHaveBeenCalledWith(message.id, expect.stringContaining('\n'))
+    })
+
+    it('should remove all newline characters from content before saving', async () => {
+      const message = createMessage(false, 'Original message')
+      const messageStore = useMessageStore()
+      const editSpy = vi.spyOn(messageStore, 'editMessage')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      expect(textarea.exists()).toBe(true)
+      
+      await textarea.setValue('Line1\nLine2\rLine3\n')
+      
+      const event = new KeyboardEvent('keydown', { 
+        key: 'Enter', 
+        bubbles: true,
+        cancelable: true
+      })
+      textarea.element.dispatchEvent(event)
+      await wrapper.vm.$nextTick()
+
+      expect(editSpy).toHaveBeenCalledWith(message.id, 'Line1Line2Line3')
+      expect(editSpy).not.toHaveBeenCalledWith(message.id, expect.stringContaining('\n'))
+      expect(editSpy).not.toHaveBeenCalledWith(message.id, expect.stringContaining('\r'))
     })
 
     it('should prevent default Enter behavior in edit textarea', async () => {
@@ -268,6 +305,36 @@ describe('MessageItem', () => {
       
       expect(preventDefaultSpy).toHaveBeenCalled()
     })
+
+    it('should allow Shift+Enter for input but strip newlines on save', async () => {
+      const message = createMessage(false, 'Original message')
+      const messageStore = useMessageStore()
+      const editSpy = vi.spyOn(messageStore, 'editMessage')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      expect(textarea.exists()).toBe(true)
+      
+      await textarea.setValue('Content with\nnewline')
+      
+      const event = new KeyboardEvent('keydown', { 
+        key: 'Enter', 
+        shiftKey: false,
+        bubbles: true,
+        cancelable: true
+      })
+      textarea.element.dispatchEvent(event)
+      await wrapper.vm.$nextTick()
+
+      expect(editSpy).toHaveBeenCalledWith(message.id, 'Content withnewline')
+    })
   })
 
   describe('Bug #2: Escape key should cancel edit when using IME', () => {
@@ -286,14 +353,77 @@ describe('MessageItem', () => {
       expect(textarea.exists()).toBe(true)
       
       await textarea.setValue('Modified content')
-      await textarea.trigger('keydown.esc', { key: 'Escape' })
+      
+      const event = new KeyboardEvent('keydown', { 
+        key: 'Escape', 
+        bubbles: true,
+        cancelable: true
+      })
+      textarea.element.dispatchEvent(event)
       await wrapper.vm.$nextTick()
 
       expect(wrapper.find('textarea').exists()).toBe(false)
       expect(wrapper.find('.message-text').text()).toBe('Original message')
     })
 
-    it('should respond to Escape key on keydown event (not keyup)', async () => {
+    it('should cancel edit when using keyCode 27 (IME composition scenario)', async () => {
+      const message = createMessage(false, 'Original message')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      expect(textarea.exists()).toBe(true)
+      
+      await textarea.setValue('Modified content')
+      
+      const event = new KeyboardEvent('keydown', { 
+        key: 'Unidentified', 
+        keyCode: 27,
+        bubbles: true,
+        cancelable: true
+      })
+      textarea.element.dispatchEvent(event)
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('textarea').exists()).toBe(false)
+      expect(wrapper.find('.message-text').text()).toBe('Original message')
+    })
+
+    it('should cancel edit when key is "Esc" (short form)', async () => {
+      const message = createMessage(false, 'Original message')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      expect(textarea.exists()).toBe(true)
+      
+      await textarea.setValue('Modified content')
+      
+      const event = new KeyboardEvent('keydown', { 
+        key: 'Esc', 
+        bubbles: true,
+        cancelable: true
+      })
+      textarea.element.dispatchEvent(event)
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('textarea').exists()).toBe(false)
+      expect(wrapper.find('.message-text').text()).toBe('Original message')
+    })
+
+    it('should prevent default Escape behavior during IME composition', async () => {
       const message = createMessage(false, 'Test message')
       
       const wrapper = mount(MessageItem, {
@@ -307,13 +437,17 @@ describe('MessageItem', () => {
       const textarea = wrapper.find('textarea')
       expect(textarea.exists()).toBe(true)
       
-      const keydownHandler = vi.fn()
-      textarea.element.addEventListener('keydown', keydownHandler)
+      const event = new KeyboardEvent('keydown', { 
+        key: 'Unidentified', 
+        keyCode: 27,
+        bubbles: true,
+        cancelable: true
+      })
+      const preventDefaultSpy = vi.spyOn(event, 'preventDefault')
       
-      const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
       textarea.element.dispatchEvent(event)
       
-      expect(keydownHandler).toHaveBeenCalled()
+      expect(preventDefaultSpy).toHaveBeenCalled()
     })
   })
 
