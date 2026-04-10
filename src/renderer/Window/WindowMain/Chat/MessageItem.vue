@@ -22,6 +22,7 @@ const contextMenuY = ref(0);
 const isEditing = ref(false);
 const editContent = ref('');
 const showActions = ref(false);
+const isComposing = ref(false);
 
 const canOperate = computed(() => {
   return canOperateMessage(props.data);
@@ -98,10 +99,28 @@ const cancelEdit = () => {
 };
 
 const saveEdit = () => {
-  if (!editContent.value.trim()) return;
-  messageStore.editMessage(props.data.id, editContent.value.trim());
+  const content = editContent.value.replace(/[\r\n]/g, '').trim();
+  if (!content) return;
+  messageStore.editMessage(props.data.id, content);
   isEditing.value = false;
   editContent.value = '';
+};
+
+const handleCompositionStart = () => {
+  isComposing.value = true;
+};
+
+const handleCompositionEnd = () => {
+  isComposing.value = false;
+};
+
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') {
+    cancelEdit();
+  } else if (e.key === 'Enter' && !isComposing.value) {
+    e.preventDefault();
+    saveEdit();
+  }
 };
 
 const handleRecallAction = () => {
@@ -223,8 +242,9 @@ const handleMouseLeave = () => {
               <textarea 
                 :class="['edit-input', 'edit-input-' + data.id]"
                 v-model="editContent"
-                @keydown.enter.prevent="saveEdit"
-                @keydown.esc="cancelEdit"
+                @keydown="handleKeydown"
+                @compositionstart="handleCompositionStart"
+                @compositionend="handleCompositionEnd"
                 rows="1"
               ></textarea>
               <div class="edit-actions">
@@ -524,6 +544,11 @@ const handleMouseLeave = () => {
   left: 70px;
   
   .dropdown-menu {
+    right: auto;
+    left: 0;
+  }
+  
+  .dropdown:hover .dropdown-menu {
     right: auto;
     left: 0;
   }

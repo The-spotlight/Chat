@@ -235,7 +235,7 @@ describe('MessageItem', () => {
       expect(textarea.exists()).toBe(true)
       
       await textarea.setValue('Edited content')
-      await textarea.trigger('keydown.enter', { key: 'Enter' })
+      await textarea.trigger('keydown', { key: 'Enter' })
       await wrapper.vm.$nextTick()
 
       expect(editSpy).toHaveBeenCalledWith(message.id, 'Edited content')
@@ -268,11 +268,11 @@ describe('MessageItem', () => {
       
       expect(preventDefaultSpy).toHaveBeenCalled()
     })
-  })
 
-  describe('Bug #2: Escape key should cancel edit when using IME', () => {
-    it('should cancel edit when Escape key is pressed on keydown', async () => {
+    it('should remove all newlines from content when saving with Enter', async () => {
       const message = createMessage(false, 'Original message')
+      const messageStore = useMessageStore()
+      const editSpy = vi.spyOn(messageStore, 'editMessage')
       
       const wrapper = mount(MessageItem, {
         props: { data: message },
@@ -283,10 +283,51 @@ describe('MessageItem', () => {
       await wrapper.vm.$nextTick()
 
       const textarea = wrapper.find('textarea')
+      await textarea.setValue('Line1\nLine2\r\nLine3')
+      await textarea.trigger('keydown', { key: 'Enter' })
+      await wrapper.vm.$nextTick()
+
+      expect(editSpy).toHaveBeenCalledWith(message.id, 'Line1Line2Line3')
+    })
+
+    it('should remove trailing newline when user presses Shift+Enter before saving', async () => {
+      const message = createMessage(false, 'Original message')
+      const messageStore = useMessageStore()
+      const editSpy = vi.spyOn(messageStore, 'editMessage')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      await textarea.setValue('Edited content\n')
+      await textarea.trigger('keydown', { key: 'Enter' })
+      await wrapper.vm.$nextTick()
+
+      expect(editSpy).toHaveBeenCalledWith(message.id, 'Edited content')
+    })
+  })
+
+  describe('Bug #2: Escape key should cancel edit when using IME', () => {
+    it('should cancel edit when Escape key is pressed on keydown', async () => {
+      const message = createMessage(false, 'Original message')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
       expect(textarea.exists()).toBe(true)
       
       await textarea.setValue('Modified content')
-      await textarea.trigger('keydown.esc', { key: 'Escape' })
+      await textarea.trigger('keydown', { key: 'Escape' })
       await wrapper.vm.$nextTick()
 
       expect(wrapper.find('textarea').exists()).toBe(false)
@@ -297,8 +338,7 @@ describe('MessageItem', () => {
       const message = createMessage(false, 'Test message')
       
       const wrapper = mount(MessageItem, {
-        props: { data: message },
-        attachTo: document.body
+        props: { data: message }
       })
 
       ;(wrapper.vm as any).startEdit()
@@ -314,6 +354,59 @@ describe('MessageItem', () => {
       textarea.element.dispatchEvent(event)
       
       expect(keydownHandler).toHaveBeenCalled()
+    })
+
+    it('should cancel edit when Escape is pressed during IME composition', async () => {
+      const message = createMessage(false, 'Original message')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      expect(textarea.exists()).toBe(true)
+      
+      await textarea.setValue('Modified content')
+      
+      await textarea.trigger('compositionstart')
+      await wrapper.vm.$nextTick()
+      
+      await textarea.trigger('keydown', { key: 'Escape' })
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('textarea').exists()).toBe(false)
+      expect(wrapper.find('.message-text').text()).toBe('Original message')
+    })
+
+    it('should cancel edit when Escape is pressed after IME composition ends', async () => {
+      const message = createMessage(false, 'Original message')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      expect(textarea.exists()).toBe(true)
+      
+      await textarea.setValue('Modified content')
+      
+      await textarea.trigger('compositionstart')
+      await wrapper.vm.$nextTick()
+      
+      await textarea.trigger('compositionend')
+      await wrapper.vm.$nextTick()
+      
+      await textarea.trigger('keydown', { key: 'Escape' })
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('textarea').exists()).toBe(false)
+      expect(wrapper.find('.message-text').text()).toBe('Original message')
     })
   })
 
