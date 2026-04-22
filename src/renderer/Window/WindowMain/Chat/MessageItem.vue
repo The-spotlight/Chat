@@ -533,10 +533,9 @@ const handleMouseLeave = () => {
   right: auto;
   left: 70px;
   
-  .dropdown-menu,
-  .dropdown:hover .dropdown-menu {
-    right: auto;
-    left: 0;
+  .dropdown-menu {
+    right: auto !important;
+    left: 0 !important;
   }
 }
 

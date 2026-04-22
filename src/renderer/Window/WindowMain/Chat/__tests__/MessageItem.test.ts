@@ -449,6 +449,76 @@ describe('MessageItem', () => {
       
       expect(preventDefaultSpy).toHaveBeenCalled()
     })
+
+    it('should cancel edit during IME composition with isComposing=true', async () => {
+      const message = createMessage(false, 'Original message')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      expect(textarea.exists()).toBe(true)
+      
+      await textarea.setValue('正在输入拼音')
+      
+      const compositionStartEvent = new Event('compositionstart', { bubbles: true })
+      textarea.element.dispatchEvent(compositionStartEvent)
+      await wrapper.vm.$nextTick()
+      
+      const event = new KeyboardEvent('keydown', { 
+        key: 'Unidentified', 
+        keyCode: 27,
+        bubbles: true,
+        cancelable: true
+      })
+      Object.defineProperty(event, 'isComposing', { value: true })
+      textarea.element.dispatchEvent(event)
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('textarea').exists()).toBe(false)
+      expect(wrapper.find('.message-text').text()).toBe('Original message')
+    })
+
+    it('should cancel edit immediately after IME composition ends', async () => {
+      const message = createMessage(false, 'Original message')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message },
+        attachTo: document.body
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      expect(textarea.exists()).toBe(true)
+      
+      await textarea.setValue('拼音输入完成')
+      
+      const compositionStartEvent = new Event('compositionstart', { bubbles: true })
+      textarea.element.dispatchEvent(compositionStartEvent)
+      
+      const compositionEndEvent = new Event('compositionend', { bubbles: true })
+      textarea.element.dispatchEvent(compositionEndEvent)
+      await wrapper.vm.$nextTick()
+      
+      const event = new KeyboardEvent('keydown', { 
+        key: 'Escape', 
+        keyCode: 27,
+        bubbles: true,
+        cancelable: true
+      })
+      textarea.element.dispatchEvent(event)
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('textarea').exists()).toBe(false)
+      expect(wrapper.find('.message-text').text()).toBe('Original message')
+    })
   })
 
   describe('Bug #3: Received message should show action buttons on hover', () => {
