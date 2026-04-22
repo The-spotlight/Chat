@@ -356,6 +356,98 @@ describe('MessageItem', () => {
       expect(keydownHandler).toHaveBeenCalled()
     })
 
+    it('should set isComposing to true when compositionstart is triggered', async () => {
+      const message = createMessage(false, 'Original message')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      expect((wrapper.vm as any).isComposing).toBe(false)
+      
+      const textarea = wrapper.find('textarea')
+      await textarea.trigger('compositionstart')
+      await wrapper.vm.$nextTick()
+
+      expect((wrapper.vm as any).isComposing).toBe(true)
+    })
+
+    it('should set isComposing to false when compositionend is triggered', async () => {
+      const message = createMessage(false, 'Original message')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      
+      await textarea.trigger('compositionstart')
+      await wrapper.vm.$nextTick()
+      expect((wrapper.vm as any).isComposing).toBe(true)
+      
+      await textarea.trigger('compositionend')
+      await wrapper.vm.$nextTick()
+      expect((wrapper.vm as any).isComposing).toBe(false)
+    })
+
+    it('should not save edit when Enter is pressed during IME composition', async () => {
+      const message = createMessage(false, 'Original message')
+      const messageStore = useMessageStore()
+      const editSpy = vi.spyOn(messageStore, 'editMessage')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      await textarea.setValue('Modified content')
+      
+      await textarea.trigger('compositionstart')
+      await wrapper.vm.$nextTick()
+      
+      await textarea.trigger('keydown', { key: 'Enter' })
+      await wrapper.vm.$nextTick()
+
+      expect(editSpy).not.toHaveBeenCalled()
+      expect(wrapper.find('textarea').exists()).toBe(true)
+    })
+
+    it('should save edit when Enter is pressed after IME composition ends', async () => {
+      const message = createMessage(false, 'Original message')
+      const messageStore = useMessageStore()
+      const editSpy = vi.spyOn(messageStore, 'editMessage')
+      
+      const wrapper = mount(MessageItem, {
+        props: { data: message }
+      })
+
+      ;(wrapper.vm as any).startEdit()
+      await wrapper.vm.$nextTick()
+
+      const textarea = wrapper.find('textarea')
+      await textarea.setValue('Modified content')
+      
+      await textarea.trigger('compositionstart')
+      await wrapper.vm.$nextTick()
+      
+      await textarea.trigger('compositionend')
+      await wrapper.vm.$nextTick()
+      
+      await textarea.trigger('keydown', { key: 'Enter' })
+      await wrapper.vm.$nextTick()
+
+      expect(editSpy).toHaveBeenCalledWith(message.id, 'Modified content')
+    })
+
     it('should cancel edit when Escape is pressed during IME composition', async () => {
       const message = createMessage(false, 'Original message')
       
